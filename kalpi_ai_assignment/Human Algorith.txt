@@ -1,0 +1,113 @@
+1. Navigate to Kalpi.ai
+2. Click on Product Overview -> Strategy Builder
+
+3. Click on Universe Box 
+3.1 Select Universe Dropdown
+3.2 Choose a Universe
+
+4. Click on filters box
+4.1 Click on add condition
+4.2 Add operator and number
+4.3 repeat for list of conditions
+
+5. Click on Ranking and Scoring
+5.1 Select what metrics you want for the ranking
+5.2 repeat for items in list
+
+6. Click on weights
+6.1 Enter No of Stocks
+6.2 Select either equal weight or metric weight
+
+
+Bare minimum needed
+Universe
+Ranking metric
+
+universes = ["All Universe", "Nifty 500", 'Nifty 200', "Nifty 100", "Nifty 50", "Nifty Next 50", "Nifty Total Market", 
+             "Nifty Midcap 150", "Nifty Midcap 100", "Nifty Midcap 50", "Nifty Smallcap 250", "Nifty Smallcap 100", 
+             "Nifty Smallcap 50", "Nifty Microcap 250", "NIFTY MIDSMALLCAP 400", "Nifty LargeMidcap 250", "NIFTY FNO"]
+
+metrics = [
+    "Close Price",
+    "High Price",
+    "Low Price",
+    "Open Price",
+    "Volume",
+    "ADX 14",
+    "ATR 14",
+    "Bollinger Bands Lower",
+    "Bollinger Bands Middle",
+    "Bollinger Bands Upper",
+    "CCI 14",
+    "EMA 100",
+    "EMA 10",
+    "EMA 15",
+    "EMA 20",
+    "EMA 200",
+    "EMA 5",
+    "EMA 50",
+    "MACD",
+    "MACD Histogram",
+    "MACD Signal",
+    "MFI 14",
+    "Momentum 10",
+    "OBV",
+    "PPO",
+    "RSI 14",
+    "SMA 100",
+    "SMA 10",
+    "SMA 15",
+    "SMA 20",
+    "SMA 200",
+    "SMA 5",
+    "SMA 50",
+    "Stochastic Slow D",
+    "Stochastic Slow K",
+    "Williams %R 14",
+    "WMA 100",
+    "WMA 10",
+    "WMA 15",
+    "WMA 20",
+    "WMA 200",
+    "WMA 5",
+    "WMA 50",
+    "EBITDA Q",
+    "EBITDA growth QoQ"
+    "P/E Ratio",
+    "Return 1D"
+    "EPS growth QoQ",
+    "EPS Q",
+    "EPS growth YoY",
+    "EPS Prev Q",
+    "EPS Prev YQ",
+    "EPS FY",
+    "EPS FY growth 1Y",
+    "EPS FY 3Y CAGR",
+    "EPS FY 5Y CAGR",
+    "EPS FY 7Y CAGR",
+    "EPS FY 10Y CAGR",
+    "EPS Last Yr",
+    "EPS Prev Yr",
+    "EPS TTM",
+    "EPS Growth YoY TTM",
+    "Volatility 1M",
+    "Volatility 3M",
+    "Volatility 1Y",
+    "Volatility Score",
+    "Beta 1Y"
+]
+
+1. Get user description for strategy
+1.1 Make a detailed implementation based description of the strategy given by the user.
+
+2. Take the detailed report and choose a universe from which to select stocks
+
+3. Make a list of filtration metrics relevant to the strategy 
+3.1 assign greater than or less than operator and a comparision value 
+
+4. Make a list of metrics on which to score and rank stocks
+
+5. Select the top n no of stocks to put
+5.1 Ask equal or metric weight
+5.2 if metric weight Select metrics for metrics
+

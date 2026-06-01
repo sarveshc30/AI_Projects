@@ -1,0 +1,712 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Kalpi Strategy Builder</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@400;500;600;700&family=Inter:wght@400;450;500&display=swap" rel="stylesheet" />
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0a0c0f;
+    --bg2: #111318;
+    --bg3: #181c24;
+    --border: rgba(255,255,255,0.07);
+    --border2: rgba(255,255,255,0.12);
+    --text: #e8eaf0;
+    --text2: #8a8fa8;
+    --text3: #545870;
+    --accent: #3b82f6;
+    --accent2: #1d4ed8;
+    --green: #22c55e;
+    --green-dim: rgba(34,197,94,0.12);
+    --amber: #f59e0b;
+    --amber-dim: rgba(245,158,11,0.1);
+    --red: #ef4444;
+    --font-head: 'Syne', sans-serif;
+    --font-body: 'Inter', sans-serif;
+    --font-mono: 'DM Mono', monospace;
+    --r: 10px;
+    --r-lg: 16px;
+  }
+
+  html, body { height: 100%; background: var(--bg); color: var(--text); font-family: var(--font-body); font-size: 15px; line-height: 1.6; }
+
+  /* ── LAYOUT ── */
+  .shell { display: grid; grid-template-columns: 260px 1fr; grid-template-rows: 100vh; height: 100vh; }
+
+  /* ── SIDEBAR ── */
+  .sidebar {
+    background: var(--bg2);
+    border-right: 1px solid var(--border);
+    display: flex; flex-direction: column;
+    overflow: hidden;
+  }
+  .sidebar-top {
+    padding: 20px 16px 16px;
+    border-bottom: 1px solid var(--border);
+  }
+  .logo { display: flex; align-items: center; gap: 10px; margin-bottom: 20px; }
+  .logo-mark {
+    width: 32px; height: 32px; border-radius: 8px;
+    background: var(--accent); display: flex; align-items: center; justify-content: center;
+    font-family: var(--font-head); font-weight: 700; font-size: 14px; color: #fff; flex-shrink: 0;
+  }
+  .logo-text { font-family: var(--font-head); font-weight: 600; font-size: 16px; color: var(--text); }
+  .logo-sub { font-size: 11px; color: var(--text3); letter-spacing: 0.08em; text-transform: uppercase; }
+  .new-btn {
+    width: 100%; padding: 9px 14px; border-radius: var(--r);
+    background: transparent; border: 1px solid var(--border2);
+    color: var(--text2); font-family: var(--font-body); font-size: 13px;
+    cursor: pointer; display: flex; align-items: center; gap: 8px;
+    transition: background 0.15s, color 0.15s;
+  }
+  .new-btn:hover { background: var(--bg3); color: var(--text); }
+  .new-btn svg { opacity: 0.6; }
+
+  .sidebar-section { padding: 14px 12px 6px; font-size: 10px; letter-spacing: 0.1em; color: var(--text3); text-transform: uppercase; font-weight: 500; }
+  .sidebar-scroll { flex: 1; overflow-y: auto; padding: 4px 12px 12px; }
+  .sidebar-scroll::-webkit-scrollbar { width: 4px; }
+  .sidebar-scroll::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 4px; }
+  .history-item {
+    padding: 8px 10px; border-radius: 8px; cursor: pointer; margin-bottom: 2px;
+    font-size: 13px; color: var(--text2); transition: background 0.12s, color 0.12s;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    border: 1px solid transparent;
+  }
+  .history-item:hover { background: var(--bg3); color: var(--text); }
+  .history-item.active { background: rgba(59,130,246,0.1); color: var(--accent); border-color: rgba(59,130,246,0.2); }
+  .history-dot { display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: var(--accent); margin-right: 8px; vertical-align: middle; opacity: 0.7; }
+
+  /* ── NODE TRACKER ── */
+  .node-tracker {
+    margin: 8px 12px 12px;
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: var(--r);
+    padding: 12px;
+  }
+  .tracker-title { font-size: 10px; text-transform: uppercase; letter-spacing: 0.1em; color: var(--text3); margin-bottom: 10px; font-weight: 500; }
+  .tracker-nodes { display: flex; flex-direction: column; gap: 4px; }
+  .tracker-node {
+    display: flex; align-items: center; gap: 8px;
+    font-size: 12px; color: var(--text3);
+    padding: 4px 6px; border-radius: 6px;
+    transition: all 0.2s;
+  }
+  .tracker-node.done { color: var(--green); }
+  .tracker-node.active { color: var(--text); background: rgba(59,130,246,0.08); }
+  .tracker-node .node-dot {
+    width: 16px; height: 16px; border-radius: 50%; border: 1.5px solid currentColor;
+    display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-size: 9px;
+  }
+  .tracker-node.done .node-dot { background: var(--green); border-color: var(--green); color: #0a0c0f; }
+  .tracker-node.active .node-dot { border-color: var(--accent); animation: pulse-border 1.5s infinite; }
+  @keyframes pulse-border { 0%,100%{box-shadow:0 0 0 0 rgba(59,130,246,0.4)} 50%{box-shadow:0 0 0 4px rgba(59,130,246,0)} }
+
+  /* ── MAIN AREA ── */
+  .main { display: flex; flex-direction: column; overflow: hidden; }
+
+  /* ── TOPBAR ── */
+  .topbar {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0 24px; height: 56px; border-bottom: 1px solid var(--border);
+    background: var(--bg); flex-shrink: 0;
+  }
+  .topbar-title { font-family: var(--font-head); font-size: 15px; font-weight: 600; color: var(--text); }
+  .topbar-badges { display: flex; gap: 8px; }
+  .badge {
+    font-size: 11px; padding: 3px 10px; border-radius: 20px;
+    font-family: var(--font-mono); font-weight: 500;
+  }
+  .badge-blue { background: rgba(59,130,246,0.12); color: #60a5fa; border: 1px solid rgba(59,130,246,0.2); }
+  .badge-green { background: var(--green-dim); color: var(--green); border: 1px solid rgba(34,197,94,0.2); }
+  .badge-amber { background: var(--amber-dim); color: var(--amber); border: 1px solid rgba(245,158,11,0.2); }
+
+  /* ── MESSAGES ── */
+  .messages {
+    flex: 1; overflow-y: auto; padding: 24px;
+    display: flex; flex-direction: column; gap: 20px;
+  }
+  .messages::-webkit-scrollbar { width: 6px; }
+  .messages::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 4px; }
+
+  /* Empty state */
+  .empty-state {
+    flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;
+    text-align: center; gap: 12px; padding: 40px;
+  }
+  .empty-icon {
+    width: 64px; height: 64px; border-radius: 18px;
+    background: rgba(59,130,246,0.1); border: 1px solid rgba(59,130,246,0.2);
+    display: flex; align-items: center; justify-content: center; font-size: 28px;
+    margin-bottom: 8px;
+  }
+  .empty-state h2 { font-family: var(--font-head); font-size: 20px; font-weight: 600; color: var(--text); }
+  .empty-state p { font-size: 14px; color: var(--text2); max-width: 360px; line-height: 1.6; }
+  .suggestion-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 16px; width: 100%; max-width: 480px; }
+  .suggestion-card {
+    background: var(--bg2); border: 1px solid var(--border); border-radius: var(--r);
+    padding: 12px 14px; text-align: left; cursor: pointer; transition: all 0.15s;
+    font-size: 13px; color: var(--text2);
+  }
+  .suggestion-card:hover { background: var(--bg3); border-color: var(--border2); color: var(--text); }
+  .suggestion-card strong { display: block; font-size: 12px; color: var(--text3); margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.06em; font-weight: 500; }
+
+  /* Messages */
+  .msg { display: flex; gap: 12px; animation: fadeUp 0.25s ease both; }
+  @keyframes fadeUp { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+  .msg.user { flex-direction: row-reverse; }
+  .avatar {
+    width: 32px; height: 32px; border-radius: 50%; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 12px; font-weight: 600; margin-top: 2px;
+  }
+  .avatar-bot { background: rgba(59,130,246,0.15); border: 1px solid rgba(59,130,246,0.25); color: #60a5fa; font-family: var(--font-head); }
+  .avatar-user { background: rgba(255,255,255,0.08); border: 1px solid var(--border2); color: var(--text2); }
+  .bubble { max-width: 680px; }
+  .msg.user .bubble { margin-left: auto; }
+  .bubble-sender { font-size: 11px; color: var(--text3); margin-bottom: 6px; letter-spacing: 0.04em; }
+  .msg.user .bubble-sender { text-align: right; }
+  .bubble-body {
+    background: var(--bg2); border: 1px solid var(--border);
+    border-radius: 4px 14px 14px 14px; padding: 12px 16px;
+    font-size: 14px; line-height: 1.7; color: var(--text);
+  }
+  .msg.user .bubble-body { border-radius: 14px 4px 14px 14px; background: rgba(59,130,246,0.1); border-color: rgba(59,130,246,0.2); }
+
+  /* Strategy card inside bot bubble */
+  .strategy-card {
+    background: var(--bg3); border: 1px solid var(--border2);
+    border-radius: var(--r-lg); padding: 16px 18px; margin-top: 14px;
+  }
+  .sc-title { font-family: var(--font-head); font-size: 13px; font-weight: 600; color: var(--text2); margin-bottom: 14px; text-transform: uppercase; letter-spacing: 0.08em; display: flex; align-items: center; gap: 8px; }
+  .sc-title::before { content: ''; display: inline-block; width: 3px; height: 14px; border-radius: 2px; background: var(--accent); }
+  .sc-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px; }
+  .sc-field { background: var(--bg2); border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px; }
+  .sc-label { font-size: 10px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text3); margin-bottom: 4px; font-weight: 500; }
+  .sc-value { font-size: 13px; color: var(--text); font-family: var(--font-mono); }
+  .sc-list { display: flex; flex-direction: column; gap: 4px; }
+  .sc-list-item { font-size: 12px; color: var(--text); display: flex; align-items: flex-start; gap: 8px; }
+  .sc-list-item::before { content: '›'; color: var(--accent); flex-shrink: 0; font-weight: 600; }
+  .sc-reasoning { margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--border); font-size: 12px; color: var(--text2); line-height: 1.6; font-style: italic; }
+  .sc-full { grid-column: 1 / -1; }
+  .mod-actions { display: flex; gap: 8px; margin-top: 14px; }
+  .mod-btn {
+    flex: 1; padding: 9px; border-radius: 8px; border: 1px solid var(--border2);
+    background: transparent; color: var(--text2); font-family: var(--font-body); font-size: 12px;
+    cursor: pointer; transition: all 0.15s; display: flex; align-items: center; justify-content: center; gap: 6px;
+  }
+  .mod-btn:hover { background: var(--bg3); color: var(--text); }
+  .mod-btn.primary { background: rgba(59,130,246,0.1); border-color: rgba(59,130,246,0.3); color: #60a5fa; }
+  .mod-btn.primary:hover { background: rgba(59,130,246,0.18); }
+  .mod-btn.success { background: var(--green-dim); border-color: rgba(34,197,94,0.3); color: var(--green); }
+  .mod-btn.success:hover { background: rgba(34,197,94,0.18); }
+
+  /* Thinking indicator */
+  .thinking { display: flex; align-items: center; gap: 8px; padding: 10px 0; }
+  .thinking-dots { display: flex; gap: 4px; }
+  .thinking-dots span {
+    width: 6px; height: 6px; border-radius: 50%; background: var(--text3);
+    animation: blink 1.2s infinite both;
+  }
+  .thinking-dots span:nth-child(2) { animation-delay: 0.2s; }
+  .thinking-dots span:nth-child(3) { animation-delay: 0.4s; }
+  @keyframes blink { 0%,80%,100%{opacity:0.2;transform:scale(0.85)} 40%{opacity:1;transform:scale(1)} }
+  .thinking-label { font-size: 13px; color: var(--text3); font-family: var(--font-mono); }
+  .thinking-stage { font-size: 11px; color: var(--accent); font-family: var(--font-mono); background: rgba(59,130,246,0.08); padding: 2px 8px; border-radius: 10px; }
+
+  /* ── INPUT AREA ── */
+  .input-area {
+    padding: 16px 24px 20px; border-top: 1px solid var(--border);
+    background: var(--bg); flex-shrink: 0;
+  }
+  .input-box {
+    background: var(--bg2); border: 1px solid var(--border2);
+    border-radius: 12px; display: flex; align-items: flex-end; gap: 10px; padding: 12px 14px;
+    transition: border-color 0.15s;
+  }
+  .input-box:focus-within { border-color: rgba(59,130,246,0.4); }
+  #userInput {
+    flex: 1; background: transparent; border: none; outline: none;
+    color: var(--text); font-family: var(--font-body); font-size: 14px;
+    resize: none; line-height: 1.6; max-height: 140px; min-height: 24px;
+    scrollbar-width: thin;
+  }
+  #userInput::placeholder { color: var(--text3); }
+  .send-btn {
+    width: 34px; height: 34px; border-radius: 8px; border: none;
+    background: var(--accent); color: #fff; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: background 0.15s, transform 0.1s; flex-shrink: 0;
+  }
+  .send-btn:hover { background: var(--accent2); }
+  .send-btn:active { transform: scale(0.94); }
+  .send-btn:disabled { background: var(--bg3); cursor: not-allowed; }
+  .input-hint { text-align: center; font-size: 11px; color: var(--text3); margin-top: 10px; }
+
+  /* Filters / metrics pill list */
+  .pill-list { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+  .pill {
+    font-size: 11px; font-family: var(--font-mono); padding: 3px 9px; border-radius: 20px;
+    background: rgba(255,255,255,0.05); border: 1px solid var(--border2); color: var(--text2);
+  }
+
+  @media (max-width: 720px) {
+    .shell { grid-template-columns: 1fr; }
+    .sidebar { display: none; }
+  }
+</style>
+</head>
+<body>
+<div class="shell">
+
+  <!-- ── SIDEBAR ── -->
+  <aside class="sidebar">
+    <div class="sidebar-top">
+      <div class="logo">
+        <div class="logo-mark">K</div>
+        <div>
+          <div class="logo-text">Kalpi.ai</div>
+          <div class="logo-sub">Strategy Builder</div>
+        </div>
+      </div>
+      <button class="new-btn" onclick="newSession()">
+        <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M8 2v12M2 8h12" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+        New strategy
+      </button>
+    </div>
+
+    <!-- Node tracker -->
+    <div class="node-tracker">
+      <div class="tracker-title">Workflow</div>
+      <div class="tracker-nodes" id="nodeTracker">
+        <div class="tracker-node" id="node-input">
+          <div class="node-dot">1</div><span>Strategy input</span>
+        </div>
+        <div class="tracker-node" id="node-universe">
+          <div class="node-dot">2</div><span>Universe selection</span>
+        </div>
+        <div class="tracker-node" id="node-filter">
+          <div class="node-dot">3</div><span>Filter conditions</span>
+        </div>
+        <div class="tracker-node" id="node-ranking">
+          <div class="node-dot">4</div><span>Ranking metrics</span>
+        </div>
+        <div class="tracker-node" id="node-weight">
+          <div class="node-dot">5</div><span>Weightage & top-N</span>
+        </div>
+        <div class="tracker-node" id="node-done">
+          <div class="node-dot">✓</div><span>Strategy complete</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="sidebar-section">Recent</div>
+    <div class="sidebar-scroll" id="historyList">
+      <!-- populated by JS -->
+    </div>
+  </aside>
+
+  <!-- ── MAIN ── -->
+  <div class="main">
+    <div class="topbar">
+      <span class="topbar-title">Strategy Builder Chat</span>
+      <div class="topbar-badges">
+        <span class="badge badge-blue" id="statusBadge">Ready</span>
+        <span class="badge badge-amber" id="modelBadge">llama-3.3-70b</span>
+      </div>
+    </div>
+
+    <div class="messages" id="messages">
+      <!-- empty state -->
+      <div class="empty-state" id="emptyState">
+        <div class="empty-icon">📊</div>
+        <h2>Build your equity strategy</h2>
+        <p>Describe any trading or investing idea in plain English. Kalpi will automatically pick a universe, apply filters, rank stocks, and configure weightage.</p>
+        <div class="suggestion-grid">
+          <div class="suggestion-card" onclick="useSuggestion(this)">
+            <strong>Momentum</strong>
+            High-RSI large-cap stocks with strong 3-month price return
+          </div>
+          <div class="suggestion-card" onclick="useSuggestion(this)">
+            <strong>Value</strong>
+            Low P/E Nifty 500 stocks with improving quarterly EPS
+          </div>
+          <div class="suggestion-card" onclick="useSuggestion(this)">
+            <strong>Quality</strong>
+            Midcap stocks with high EBITDA growth and low volatility
+          </div>
+          <div class="suggestion-card" onclick="useSuggestion(this)">
+            <strong>Trend-following</strong>
+            Stocks trading above EMA 200 with rising volume and MACD crossover
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="input-area">
+      <div class="input-box">
+        <textarea id="userInput" rows="1" placeholder="Describe your investment strategy…" onkeydown="handleKey(event)" oninput="autoResize(this)"></textarea>
+        <button class="send-btn" id="sendBtn" onclick="sendMessage()" title="Send">
+          <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M2 8L14 2L8 14L7 9L2 8Z" fill="white"/></svg>
+        </button>
+      </div>
+      <div class="input-hint">Powered by LangGraph · Groq llama-3.3-70b-versatile</div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+const UNIVERSES = ["All Universe","Nifty 500","Nifty 200","Nifty 100","Nifty 50","Nifty Next 50","Nifty Total Market","Nifty Midcap 150","Nifty Midcap 100","Nifty Midcap 50","Nifty Smallcap 250","Nifty Smallcap 100","Nifty Smallcap 50","Nifty Microcap 250","NIFTY MIDSMALLCAP 400","Nifty LargeMidcap 250","NIFTY FNO"];
+
+const METRICS = ["Close Price","High Price","Low Price","Open Price","Volume","ADX 14","ATR 14","Bollinger Bands Lower","Bollinger Bands Middle","Bollinger Bands Upper","CCI 14","Dividend Yield","EMA 100","EMA 10","EMA 15","EMA 20","EMA 200","EMA 5","EMA 50","Market Capitalization","MACD","MACD Histogram","MACD Signal","MFI 14","Momentum 10","OBV","PPO","RSI 14","SMA 100","SMA 10","SMA 15","SMA 20","SMA 200","SMA 5","SMA 50","Stochastic Slow D","Stochastic Slow K","Williams %R 14","WMA 100","WMA 10","WMA 15","WMA 20","WMA 200","WMA 5","WMA 50","EBITDA Q","EBITDA growth QoQ","P/E Ratio","Return 1D","EPS growth QoQ","EPS Q","EPS growth YoY","EPS Prev Q","EPS Prev YQ","EPS FY","EPS FY growth 1Y","EPS FY 3Y CAGR","EPS FY 5Y CAGR","EPS FY 7Y CAGR","EPS FY 10Y CAGR","EPS Last Yr","EPS Prev Yr","EPS TTM","EPS Growth YoY TTM","Volatility 1M","Volatility 3M","Volatility 1Y","Volatility Score","Beta 1Y"];
+
+let state = null;
+let history = [];
+let sessionId = Date.now();
+let isThinking = false;
+
+// ── AUTO-RESIZE TEXTAREA ──
+function autoResize(el) {
+  el.style.height = 'auto';
+  el.style.height = Math.min(el.scrollHeight, 140) + 'px';
+}
+
+function handleKey(e) {
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
+}
+
+function useSuggestion(el) {
+  const text = el.querySelector('strong').textContent + ' — ' + el.textContent.replace(el.querySelector('strong').textContent,'').trim();
+  document.getElementById('userInput').value = text;
+  autoResize(document.getElementById('userInput'));
+  sendMessage();
+}
+
+// ── NODE TRACKER ──
+const NODE_IDS = ['input','universe','filter','ranking','weight','done'];
+function setNode(activeNode) {
+  NODE_IDS.forEach((id, i) => {
+    const el = document.getElementById('node-' + id);
+    const activeIdx = NODE_IDS.indexOf(activeNode);
+    if (i < activeIdx) { el.className = 'tracker-node done'; el.querySelector('.node-dot').textContent = '✓'; }
+    else if (i === activeIdx) { el.className = 'tracker-node active'; }
+    else { el.className = 'tracker-node'; el.querySelector('.node-dot').textContent = i + 1; }
+  });
+  if (activeNode === 'done') {
+    const el = document.getElementById('node-done');
+    el.className = 'tracker-node done';
+  }
+}
+
+// ── STATUS BADGE ──
+function setStatus(text, type) {
+  const b = document.getElementById('statusBadge');
+  b.textContent = text;
+  b.className = 'badge badge-' + (type || 'blue');
+}
+
+// ── HISTORY ──
+function addToHistory(label) {
+  history.unshift({ id: sessionId, label });
+  renderHistory();
+}
+function renderHistory() {
+  const el = document.getElementById('historyList');
+  el.innerHTML = history.slice(0, 10).map(h =>
+    `<div class="history-item ${h.id === sessionId ? 'active' : ''}"><span class="history-dot"></span>${h.label}</div>`
+  ).join('');
+}
+
+// ── MESSAGES ──
+function hideEmpty() {
+  const e = document.getElementById('emptyState');
+  if (e) e.remove();
+}
+
+function appendMsg(role, content) {
+  hideEmpty();
+  const container = document.getElementById('messages');
+  const div = document.createElement('div');
+  div.className = 'msg ' + role;
+  const avatarLabel = role === 'bot' ? 'K' : 'U';
+  const avatarClass = role === 'bot' ? 'avatar-bot' : 'avatar-user';
+  const sender = role === 'bot' ? 'Kalpi AI' : 'You';
+  div.innerHTML = `
+    <div class="avatar ${avatarClass}">${avatarLabel}</div>
+    <div class="bubble">
+      <div class="bubble-sender">${sender}</div>
+      <div class="bubble-body">${content}</div>
+    </div>`;
+  container.appendChild(div);
+  container.scrollTop = container.scrollHeight;
+  return div.querySelector('.bubble-body');
+}
+
+function showThinking(stage) {
+  hideEmpty();
+  const container = document.getElementById('messages');
+  const div = document.createElement('div');
+  div.className = 'msg bot';
+  div.id = 'thinking-indicator';
+  div.innerHTML = `
+    <div class="avatar avatar-bot">K</div>
+    <div class="bubble">
+      <div class="bubble-sender">Kalpi AI</div>
+      <div class="bubble-body">
+        <div class="thinking">
+          <div class="thinking-dots"><span></span><span></span><span></span></div>
+          <span class="thinking-label">Running workflow</span>
+          <span class="thinking-stage" id="thinkingStage">${stage}</span>
+        </div>
+      </div>
+    </div>`;
+  container.appendChild(div);
+  container.scrollTop = container.scrollHeight;
+}
+
+function updateThinkingStage(stage) {
+  const el = document.getElementById('thinkingStage');
+  if (el) el.textContent = stage;
+}
+
+function removeThinking() {
+  const el = document.getElementById('thinking-indicator');
+  if (el) el.remove();
+}
+
+// ── STRATEGY CARD ──
+function renderStrategyCard(s) {
+  const filtersHtml = (s.filters || []).map(f =>
+    `<div class="sc-list-item">${f.metric} <strong>${f.operator}</strong> ${f.value}</div>`
+  ).join('') || '<div class="sc-list-item" style="color:var(--text3)">No filters</div>';
+
+  const rankHtml = (s.ranking_metrics || []).map((m, i) =>
+    `<div class="sc-list-item">${i+1}. ${m}</div>`
+  ).join('') || '<div class="sc-list-item" style="color:var(--text3)">None</div>';
+
+  const weightStr = s.weight_type === 'metric'
+    ? (s.weight_metrics || []).join(' · ')
+    : 'Equal weighting';
+
+  const reasonHtml = Object.entries(s.reasoning || {}).filter(([,v]) => v).map(([k,v]) =>
+    `<div><strong style="color:var(--text3);font-size:10px;text-transform:uppercase;letter-spacing:0.07em">${k}:</strong> ${v}</div>`
+  ).join('');
+
+  return `
+    <div class="strategy-card">
+      <div class="sc-title">Strategy Configuration</div>
+      <div class="sc-grid">
+        <div class="sc-field">
+          <div class="sc-label">Universe</div>
+          <div class="sc-value">${s.universe || '—'}</div>
+        </div>
+        <div class="sc-field">
+          <div class="sc-label">Top N stocks</div>
+          <div class="sc-value">${s.top_n || '—'}</div>
+        </div>
+        <div class="sc-field">
+          <div class="sc-label">Weighting</div>
+          <div class="sc-value" style="font-size:12px">${weightStr}</div>
+        </div>
+        <div class="sc-field">
+          <div class="sc-label">Weight type</div>
+          <div class="sc-value">${s.weight_type || '—'}</div>
+        </div>
+        <div class="sc-field sc-full">
+          <div class="sc-label">Filter conditions</div>
+          <div class="sc-list" style="margin-top:6px">${filtersHtml}</div>
+        </div>
+        <div class="sc-field sc-full">
+          <div class="sc-label">Ranking metrics</div>
+          <div class="sc-list" style="margin-top:6px">${rankHtml}</div>
+        </div>
+      </div>
+      ${reasonHtml ? `<div class="sc-reasoning">${reasonHtml}</div>` : ''}
+      <div class="mod-actions">
+        <button class="mod-btn primary" onclick="promptModify()">✏ Modify strategy</button>
+        <button class="mod-btn success" onclick="acceptStrategy()">✓ Accept & export</button>
+      </div>
+    </div>`;
+}
+
+// ── API CALLS (simulate LangGraph nodes) ──
+const API_BASE = 'http://localhost:8000/api';
+
+async function apiStart(sessionId, userInput) {
+  const res = await fetch(`${API_BASE}/start`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ session_id: sessionId.toString(), user_input: userInput })
+  });
+  if (!res.ok) throw new Error(await res.text());
+  return res.json();
+}
+
+async function apiModify(sessionId, modificationInput) {
+  const res = await fetch(`${API_BASE}/modify`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ session_id: sessionId.toString(), modification_input: modificationInput })
+  });
+  if (!res.ok) throw new Error(await res.text());
+  return res.json();
+}
+
+// ── MAIN SEND ──
+async function sendMessage() {
+  if (isThinking) return;
+  const input = document.getElementById('userInput');
+  const text = input.value.trim();
+  if (!text) return;
+  input.value = '';
+  autoResize(input);
+
+  document.getElementById('sendBtn').disabled = true;
+  isThinking = true;
+  setStatus('Processing…', 'amber');
+
+  appendMsg('user', text);
+
+  // Check if this is a modification
+  const isModify = state && (text.toLowerCase().includes('modify') || text.toLowerCase().includes('change') || text.toLowerCase().includes('update') || text.toLowerCase().includes('adjust') || text.toLowerCase().includes('add') || text.toLowerCase().includes('remove') || text.toLowerCase().includes('increase') || text.toLowerCase().includes('decrease'));
+
+  try {
+    if (state && isModify) {
+      await runModificationWorkflow(text);
+    } else {
+      await runFullWorkflow(text);
+    }
+  } catch(e) {
+    removeThinking();
+    appendMsg('bot', `<span style="color:var(--red)">⚠ Error: ${e.message}. Please check your connection and try again.</span>`);
+    setStatus('Error', 'amber');
+  }
+
+  document.getElementById('sendBtn').disabled = false;
+  isThinking = false;
+}
+
+async function runFullWorkflow(text) {
+  state = null;
+  setNode('input');
+  showThinking('Running strategy workflow…');
+  setStatus('Running…', 'blue');
+  
+  // Start cycling through nodes for UX effect
+  const nodes = ['universe', 'filter', 'ranking', 'weight', 'done'];
+  let currentIdx = 0;
+  const interval = setInterval(() => {
+      if (currentIdx < nodes.length - 1) {
+          setNode(nodes[currentIdx]);
+          currentIdx++;
+      }
+  }, 400);
+
+  try {
+    const response = await apiStart(sessionId, text);
+    clearInterval(interval);
+    
+    removeThinking();
+    state = response.state;
+    
+    addToHistory(text.substring(0, 40) + (text.length > 40 ? '…' : ''));
+    
+    setNode('done');
+    setStatus('Complete', 'green');
+    
+    const card = renderStrategyCard(state);
+    appendMsg('bot', `Your strategy is ready. Here is the complete configuration — review it and let me know if you'd like any modifications.${card}`);
+  } catch(e) {
+    clearInterval(interval);
+    throw e;
+  }
+}
+
+async function runModificationWorkflow(text) {
+  showThinking('Analysing modification…');
+  setStatus('Modifying…', 'amber');
+  setNode('input');
+
+  const nodes = ['universe', 'filter', 'ranking', 'weight', 'done'];
+  let currentIdx = 0;
+  const interval = setInterval(() => {
+      if (currentIdx < nodes.length - 1) {
+          setNode(nodes[currentIdx]);
+          currentIdx++;
+      }
+  }, 400);
+
+  try {
+    const response = await apiModify(sessionId, text);
+    clearInterval(interval);
+    
+    removeThinking();
+    state = response.state;
+    
+    setNode('done');
+    setStatus('Updated', 'green');
+    
+    if (state.latest_mod_plan) {
+      appendMsg('bot', `<strong>Modification Plan:</strong><br><br>${state.latest_mod_plan.replace(/\\n/g, '<br>')}`);
+    }
+
+    const card = renderStrategyCard(state);
+    appendMsg('bot', `Modification complete. Here's the updated configuration:${card}`);
+  } catch(e) {
+    clearInterval(interval);
+    throw e;
+  }
+}
+
+function promptModify() {
+  const input = document.getElementById('userInput');
+  input.value = '';
+  input.focus();
+  input.placeholder = 'Describe your modification (e.g. "add RSI filter above 50", "switch to smallcap universe")…';
+}
+
+function acceptStrategy() {
+  if (!state) return;
+  const json = JSON.stringify(state, null, 2);
+  const blob = new Blob([json], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = 'kalpi_strategy.json'; a.click();
+  URL.revokeObjectURL(url);
+  appendMsg('bot', 'Strategy exported as <code style="background:var(--bg3);padding:2px 6px;border-radius:4px;font-family:var(--font-mono);font-size:12px">kalpi_strategy.json</code>. You can now import this into the Kalpi.ai Strategy Builder.');
+}
+
+function newSession() {
+  state = null;
+  isThinking = false;
+  sessionId = Date.now();
+  setNode('');
+  setStatus('Ready', 'blue');
+  const msgs = document.getElementById('messages');
+  msgs.innerHTML = `
+    <div class="empty-state" id="emptyState">
+      <div class="empty-icon">📊</div>
+      <h2>Build your equity strategy</h2>
+      <p>Describe any trading or investing idea in plain English. Kalpi will automatically pick a universe, apply filters, rank stocks, and configure weightage.</p>
+      <div class="suggestion-grid">
+        <div class="suggestion-card" onclick="useSuggestion(this)"><strong>Momentum</strong>High-RSI large-cap stocks with strong 3-month price return</div>
+        <div class="suggestion-card" onclick="useSuggestion(this)"><strong>Value</strong>Low P/E Nifty 500 stocks with improving quarterly EPS</div>
+        <div class="suggestion-card" onclick="useSuggestion(this)"><strong>Quality</strong>Midcap stocks with high EBITDA growth and low volatility</div>
+        <div class="suggestion-card" onclick="useSuggestion(this)"><strong>Trend-following</strong>Stocks trading above EMA 200 with rising volume and MACD crossover</div>
+      </div>
+    </div>`;
+  document.getElementById('userInput').placeholder = 'Describe your investment strategy…';
+  NODE_IDS.forEach((id, i) => {
+    const el = document.getElementById('node-' + id);
+    el.className = 'tracker-node';
+    el.querySelector('.node-dot').textContent = i + 1 <= 5 ? i + 1 : '✓';
+  });
+}
+</script>
+</body>
+</html>
