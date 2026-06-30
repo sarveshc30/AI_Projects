@@ -1,0 +1,1807 @@
+Close Price
+UNIT: NUMBER
+The close price of a stock
+
+High Price
+UNIT: NUMBER
+The highest trading price of a stock
+
+Low Price
+UNIT: NUMBER
+The lowest trading price of a stock
+
+Open Price
+UNIT: NUMBER
+The open price of a stock
+
+Volume
+UNIT: NUMBER
+The total number of shares traded
+
+ADX 14
+UNIT: NUMBER
+Average Directional Index - measures trend strength (values above 25 indicate strong trend)
+
+ATR 14
+UNIT: NUMBER
+Average True Range - measures market volatility and potential price movement
+
+Bollinger Bands Lower
+UNIT: NUMBER
+Lower Bollinger Band - potential support level
+
+Bollinger Bands Middle
+UNIT: NUMBER
+Middle Bollinger Band - simple moving average
+
+Bollinger Bands Upper
+UNIT: NUMBER
+Upper Bollinger Band - potential resistance level
+
+CCI 14
+UNIT: NUMBER
+Commodity Channel Index - identifies cyclical trends
+
+EMA 100
+UNIT: NUMBER
+100-day Exponential Moving Average - gives more weight to recent prices exponentially
+
+EMA 10
+UNIT: NUMBER
+10-day Exponential Moving Average - gives more weight to recent prices exponentially
+
+EMA 15
+UNIT: NUMBER
+15-day Exponential Moving Average - gives more weight to recent prices exponentially
+
+EMA 20
+UNIT: NUMBER
+20-day Exponential Moving Average - gives more weight to recent prices exponentially
+
+EMA 200
+UNIT: NUMBER
+200-day Exponential Moving Average - gives more weight to recent prices exponentially
+
+EMA 5
+UNIT: NUMBER
+5-day Exponential Moving Average - gives more weight to recent prices exponentially
+
+EMA 50
+UNIT: NUMBER
+50-day Exponential Moving Average - gives more weight to recent prices exponentially
+
+MACD
+UNIT: NUMBER
+Moving Average Convergence Divergence - momentum indicator showing relationship between moving averages. MACD line is above signal line = bullish, below = bearish
+
+MACD Histogram
+UNIT: NUMBER
+MACD Histogram - shows the distance between MACD line and signal line. Widening gap = strengthening momentum
+
+MACD Signal
+UNIT: NUMBER
+MACD Signal line - triggers buy/sell signals when crossed
+
+MFI 14
+UNIT: NUMBER
+Money Flow Index - measures buying and selling pressure
+
+Momentum 10
+UNIT: NUMBER
+10-day Momentum - measures rate of price change over 10 days
+
+OBV
+UNIT: NUMBER
+On-Balance Volume - uses volume flow to predict price changes
+
+PPO
+UNIT: %
+Price Oscillator - shows momentum as percentage difference between moving averages
+
+RSI 14
+UNIT: NUMBER
+Relative Strength Index - identifies overbought (above 70) or oversold (below 30) conditions
+
+SMA 100
+UNIT: NUMBER
+100-day Simple Moving Average - average price over last 100 days
+
+SMA 10
+UNIT: NUMBER
+10-day Simple Moving Average - average price over last 10 days
+
+SMA 15
+UNIT: NUMBER
+15-day Simple Moving Average - average price over last 15 days
+
+SMA 20
+UNIT: NUMBER
+20-day Simple Moving Average - average price over last 20 days
+
+SMA 200
+UNIT: NUMBER
+200-day Simple Moving Average - average price over last 200 days
+
+SMA 5
+UNIT: NUMBER
+5-day Simple Moving Average - average price over last 5 days
+
+SMA 50
+UNIT: NUMBER
+50-day Simple Moving Average - average price over last 50 days
+
+Stochastic Slow D
+UNIT: NUMBER
+Slow Stochastic D line - Stochastic oscillator is a momentum indicator that compares a closing price to a price range over a given time period. The indicator is used to identify overbought or oversold conditions in a stock.
+
+Stochastic Slow K
+UNIT: NUMBER
+Slow Stochastic K line - Stochastic oscillator is a momentum indicator that compares a closing price to a price range over a given time period. The indicator is used to identify overbought or oversold conditions in a stock.
+
+Williams %R 14
+UNIT: NUMBER
+Williams %R - identifies overbought/oversold conditions
+
+WMA 100
+UNIT: NUMBER
+100-day Weighted Moving Average - gives more weight to recent prices
+
+WMA 10
+UNIT: NUMBER
+10-day Weighted Moving Average - gives more weight to recent prices linearly
+
+WMA 15
+UNIT: NUMBER
+15-day Weighted Moving Average - gives more weight to recent prices linearly
+
+WMA 20
+UNIT: NUMBER
+20-day Weighted Moving Average - gives more weight to recent prices
+
+WMA 200
+UNIT: NUMBER
+200-day Weighted Moving Average - gives more weight to recent prices
+
+WMA 5
+UNIT: NUMBER
+5-day Weighted Moving Average - gives more weight to recent prices
+
+WMA 50
+UNIT: NUMBER
+50-day Weighted Moving Average - gives more weight to recent prices
+
+EBITDA Q
+UNIT: NUMBER
+Quarterly Earnings Before Interest, Taxes, Depreciation, and Amortization
+
+EBITDA growth QoQ
+UNIT: %
+Quarter-over-Quarter EBITDA growth rate
+
+EBITDA margin Q
+UNIT: %
+Quarterly EBITDA as percentage of revenue
+
+EPS growth QoQ
+UNIT: %
+Quarter-over-Quarter Earnings Per Share growth rate
+
+EPS Q
+UNIT: NUMBER
+Quarterly Earnings Per Share - company's profit divided by outstanding shares
+
+Gross Profit Q
+UNIT: NUMBER
+Quarterly Gross Profit - revenue minus cost of goods sold
+
+EBITDA growth YoY
+UNIT: %
+Year-over-Year EBITDA growth rate for last quarter
+
+EPS growth YoY
+UNIT: %
+Year-over-Year Earnings Per Share growth rate for last quarter
+
+Profit growth YoY
+UNIT: %
+Year-over-Year profit growth rate for last quarter
+
+Sales growth YoY
+UNIT: %
+Year-over-Year sales growth rate for last quarter
+
+Profit after Tax Q
+UNIT: NUMBER
+Quarterly net profit after all expenses and taxes
+
+Net profit margin Q
+UNIT: %
+Quarterly net profit as percentage of revenue
+
+Operating Profit Q
+UNIT: NUMBER
+Quarterly operating profit before interest and taxes
+
+PBT Q
+UNIT: NUMBER
+Quarterly Profit Before Tax - operating profit before tax expenses
+
+Profit growth QoQ
+UNIT: %
+Quarter-over-Quarter profit growth rate
+
+Sales growth QoQ
+UNIT: %
+Quarter-over-Quarter sales growth rate
+
+Net Revenue Q
+UNIT: NUMBER
+Quarterly net revenue from sales after discounts and returns
+
+EBIT Q
+UNIT: NUMBER
+Quarterly Earnings Before Interest and Taxes
+
+Interest Expense Q
+UNIT: NUMBER
+Quarterly interest expense on debt
+
+Depreciation Q
+UNIT: NUMBER
+Quarterly depreciation and amortization expense
+
+Income Tax Q
+UNIT: NUMBER
+Quarterly income tax expense
+
+Extraordinary Items Q
+UNIT: NUMBER
+Quarterly extraordinary gains or losses
+
+Other Income Q
+UNIT: NUMBER
+Quarterly dividend and investment income
+
+Equity Capital Q
+UNIT: NUMBER
+Quarterly common stock issued and paid
+
+Operating Margin Q
+UNIT: %
+Quarterly operating profit as percentage of revenue
+
+Gross Margin Q
+UNIT: %
+Quarterly gross profit as percentage of revenue
+
+Operating Profit Growth YoY
+UNIT: %
+Year-over-Year operating profit growth rate
+
+PBT Growth YoY
+UNIT: %
+Year-over-Year profit before tax growth rate
+
+EBIT Growth YoY
+UNIT: %
+Year-over-Year EBIT growth rate
+
+Interest Expense Growth YoY
+UNIT: %
+Year-over-Year interest expense growth rate
+
+Depreciation Growth YoY
+UNIT: %
+Year-over-Year depreciation growth rate
+
+Operating Profit Growth QoQ
+UNIT: %
+Quarter-over-Quarter operating profit growth rate
+
+PBT Growth QoQ
+UNIT: %
+Quarter-over-Quarter profit before tax growth rate
+
+EBIT Growth QoQ
+UNIT: %
+Quarter-over-Quarter EBIT growth rate
+
+Interest Expense Growth QoQ
+UNIT: %
+Quarter-over-Quarter interest expense growth rate
+
+Sales Prev Q
+UNIT: NUMBER
+Previous quarter net revenue
+
+Sales Prev YQ
+UNIT: NUMBER
+Year-ago quarter net revenue
+
+EPS Prev Q
+UNIT: NUMBER
+Previous quarter earnings per share
+
+EPS Prev YQ
+UNIT: NUMBER
+Year-ago quarter earnings per share
+
+EBITDA Prev Q
+UNIT: NUMBER
+Previous quarter EBITDA
+
+EBITDA Prev YQ
+UNIT: NUMBER
+Year-ago quarter EBITDA
+
+Net Profit Prev Q
+UNIT: NUMBER
+Previous quarter net profit
+
+Net Profit Prev YQ
+UNIT: NUMBER
+Year-ago quarter net profit
+
+EBIT Prev Q
+UNIT: NUMBER
+Previous quarter EBIT
+
+EBIT Prev YQ
+UNIT: NUMBER
+Year-ago quarter EBIT
+
+Interest Exp Prev Q
+UNIT: NUMBER
+Previous quarter interest expense
+
+Interest Exp Prev YQ
+UNIT: NUMBER
+Year-ago quarter interest expense
+
+Depreciation Prev Q
+UNIT: NUMBER
+Previous quarter depreciation
+
+Depreciation Prev YQ
+UNIT: NUMBER
+Year-ago quarter depreciation
+
+Tax Prev Q
+UNIT: NUMBER
+Previous quarter income tax
+
+Tax Prev YQ
+UNIT: NUMBER
+Year-ago quarter income tax
+
+Other Income Prev Q
+UNIT: NUMBER
+Previous quarter other income
+
+Other Income Prev YQ
+UNIT: NUMBER
+Year-ago quarter other income
+
+Extraordinary Items Prev Q
+UNIT: NUMBER
+Previous quarter extraordinary items
+
+Extraordinary Items Prev YQ
+UNIT: NUMBER
+Year-ago quarter extraordinary items
+
+Equity Capital Prev Q
+UNIT: NUMBER
+Previous quarter equity capital
+
+Equity Capital Prev YQ
+UNIT: NUMBER
+Year-ago quarter equity capital
+
+PBT Prev Q
+UNIT: NUMBER
+Previous quarter profit before tax
+
+PBT Prev YQ
+UNIT: NUMBER
+Year-ago quarter profit before tax
+
+Sales 2Q Back
+UNIT: NUMBER
+Sales from 2 quarters ago
+
+Sales 3Q Back
+UNIT: NUMBER
+Sales from 3 quarters ago
+
+Net Profit 2Q Back
+UNIT: NUMBER
+Net profit from 2 quarters ago
+
+Net Profit 3Q Back
+UNIT: NUMBER
+Net profit from 3 quarters ago
+
+Operating Profit Prev Q
+UNIT: NUMBER
+Previous quarter operating profit
+
+Operating Profit 2Q Back
+UNIT: NUMBER
+Operating profit from 2 quarters ago
+
+Operating Profit 3Q Back
+UNIT: NUMBER
+Operating profit from 3 quarters ago
+
+Operating Profit Prev YQ
+UNIT: NUMBER
+Year-ago quarter operating profit
+
+OPM Prev Q
+UNIT: %
+Previous quarter operating profit margin
+
+OPM Prev YQ
+UNIT: %
+Year-ago quarter operating profit margin
+
+NPM Prev Q
+UNIT: %
+Previous quarter net profit margin
+
+NPM Prev YQ
+UNIT: %
+Year-ago quarter net profit margin
+
+EBIT FY
+UNIT: NUMBER
+Annual Earnings Before Interest and Taxes
+
+EBITDA FY
+UNIT: NUMBER
+Annual Earnings Before Interest, Taxes, Depreciation, and Amortization
+
+Employee Exp FY
+UNIT: NUMBER
+Annual employee expenses including salaries and benefits
+
+EPS FY
+UNIT: NUMBER
+Annual Earnings Per Share - company's total profit divided by outstanding shares
+
+Interest Expense Gross FY
+UNIT: NUMBER
+Annual gross interest expenses on debt
+
+PBT FY
+UNIT: NUMBER
+Annual Profit Before Tax - operating profit before tax expenses
+
+Net Revenue FY
+UNIT: NUMBER
+Annual net revenue from sales after discounts and returns
+
+Gross Profit FY
+UNIT: NUMBER
+Annual gross profit - revenue minus cost of goods sold
+
+R&D total FY
+UNIT: NUMBER
+Annual total research and development expenses
+
+R&D to Sales FY %
+UNIT: %
+Annual R&D expenses as percentage of sales
+
+Depreciation FY
+UNIT: NUMBER
+Annual depreciation and amortization expense
+
+Income Tax FY
+UNIT: NUMBER
+Annual income tax expense
+
+Current Tax FY
+UNIT: NUMBER
+Annual current income tax expense
+
+Other Income FY
+UNIT: NUMBER
+Annual dividend and investment income
+
+Extraordinary Items FY
+UNIT: NUMBER
+Annual extraordinary gains or losses
+
+Material Cost FY
+UNIT: NUMBER
+Annual material expenses
+
+Cost of Revenue ex Dep FY
+UNIT: NUMBER
+Annual cost of revenue excluding depreciation
+
+Operating Profit FY
+UNIT: NUMBER
+Annual operating profit
+
+Payable to Sales %
+UNIT: %
+Annual accounts payable as percentage of revenue
+
+Receivable Turnover
+UNIT: NUMBER
+Annual how quickly company collects payments from customers
+
+Asset Turnover FY
+UNIT: NUMBER
+Annual efficiency of using assets to generate revenue
+
+Cash ratio FY
+UNIT: NUMBER
+Annual ability to pay short-term obligations with cash
+
+Cash flow ROA FY
+UNIT: %
+Annual cash flow return on assets - profitability using cash flow
+
+CFROCE FY
+UNIT: %
+Annual Cash Flow Return on Capital Employed - efficiency of capital use
+
+Current ratio FY
+UNIT: NUMBER
+Annual ability to pay short-term obligations with current assets
+
+Debt to Assets FY
+UNIT: %
+Annual debt as percentage of total assets
+
+Debt to EBITDA FY
+UNIT: NUMBER
+Annual debt relative to earnings (lower is better)
+
+Debt to Equity FY
+UNIT: NUMBER
+Annual debt relative to shareholder equity
+
+Fixed Asset Turnover
+UNIT: NUMBER
+Annual efficiency of using fixed assets to generate revenue
+
+Interest Coverage Ratio FY
+UNIT: NUMBER
+Annual ability to pay interest expenses (higher is better)
+
+Inventory Days
+UNIT: NUMBER
+Annual average days inventory remains unsold
+
+Inventory Turnover
+UNIT: NUMBER
+Annual how quickly company sells inventory
+
+Payables Days
+UNIT: NUMBER
+Annual average days to pay suppliers
+
+Quick ratio FY
+UNIT: NUMBER
+Annual ability to pay short-term obligations without inventory
+
+Receivables Days
+UNIT: NUMBER
+Annual average days to collect payments from customers
+
+ROA FY
+UNIT: %
+Annual Return on Assets - profitability relative to total assets
+
+ROE FY
+UNIT: %
+Annual Return on Equity - profitability relative to shareholder equity
+
+ROCE FY
+UNIT: %
+Annual Return on Capital Employed - efficiency of capital use
+
+ROIC FY
+UNIT: %
+Annual Return on Invested Capital - efficiency of investment
+
+CF Accrual Ratio
+UNIT: NUMBER
+Cash flow accrual ratio - measures quality of earnings
+
+Piotroski F-Score
+UNIT: NUMBER
+Piotroski F-Score (0-9) - higher indicates better financial strength
+
+Beneish M-Score
+UNIT: NUMBER
+Beneish M-Score - accounting manipulation indicator (>-1.78 suggests manipulation)
+
+Montier C-Score
+UNIT: NUMBER
+Montier C-Score (0-6) - higher indicates more accounting red flags
+
+Cash Conversion Cycle
+UNIT: NUMBER
+Days to convert inventory and receivables to cash
+
+Working Capital Days
+UNIT: NUMBER
+Working capital as days of sales
+
+Earning Power
+UNIT: %
+EBIT as percentage of total assets
+
+Financial Leverage
+UNIT: NUMBER
+Total assets divided by shareholder equity
+
+Current Assets FY End
+UNIT: NUMBER
+Annual current assets at year end - cash, inventory, receivables
+
+BPS FY End
+UNIT: NUMBER
+Annual Book Value Per Share at year end
+
+Cash and ST Inv FY End
+UNIT: NUMBER
+Annual cash and short-term investments at year end
+
+Cash and Cash Eq FY End
+UNIT: NUMBER
+Annual cash and cash equivalents at year end
+
+Common Equity FY End
+UNIT: NUMBER
+Annual common shareholder equity at year end
+
+Shares outstanding FY End
+UNIT: NUMBER
+Annual total shares outstanding at year end
+
+Total Debt FY End
+UNIT: NUMBER
+Annual total debt (short and long-term) at year end
+
+Total Fixed Assets - Net
+UNIT: NUMBER
+Annual net fixed assets after depreciation
+
+Inventories FY End
+UNIT: NUMBER
+Annual inventory value at year end
+
+Current Liabilities FY End
+UNIT: NUMBER
+Annual current liabilities due within one year
+
+Long term debt to Equity
+UNIT: NUMBER
+Annual long-term debt relative to shareholder equity
+
+LT Debt FY End
+UNIT: NUMBER
+Annual long-term debt at year end
+
+Net Current Assets FY End
+UNIT: NUMBER
+Annual current assets minus current liabilities
+
+Net Debt to EBITDA FY
+UNIT: NUMBER
+Annual net debt relative to earnings
+
+Net Debt to FCFF FY
+UNIT: NUMBER
+Annual net debt relative to free cash flow
+
+Net Debt FY End
+UNIT: NUMBER
+Annual total debt minus cash at year end
+
+Net Operating Assets FY End
+UNIT: NUMBER
+Annual operating assets minus operating liabilities
+
+Operating Assets FY End
+UNIT: NUMBER
+Annual assets used in core business operations
+
+Gross Block FY End
+UNIT: NUMBER
+Annual gross property, plant, and equipment before depreciation
+
+Net Block FY End
+UNIT: NUMBER
+Annual net property, plant, and equipment after depreciation
+
+Receivables FY End
+UNIT: NUMBER
+Annual accounts receivable at year end
+
+Reserves and Surplus FY End
+UNIT: NUMBER
+Annual retained earnings and reserves at year end
+
+ST Debt FY End
+UNIT: NUMBER
+Annual short-term debt at year end
+
+Tangible Book Value
+UNIT: NUMBER
+Annual book value excluding intangible assets
+
+Tangible Total Equity
+UNIT: NUMBER
+Annual shareholder equity excluding intangible assets
+
+Total Assets FY End
+UNIT: NUMBER
+Annual total assets at year end
+
+Total capital FY End
+UNIT: NUMBER
+Annual total capital (debt + equity) at year end
+
+Total liabilities FY End
+UNIT: NUMBER
+Annual total liabilities at year end
+
+Accumulated Depreciation
+UNIT: NUMBER
+Accumulated depreciation and impairment
+
+Revaluation Reserve
+UNIT: NUMBER
+Revaluation reserves
+
+Total Investments
+UNIT: NUMBER
+Total investments
+
+Equity Capital
+UNIT: NUMBER
+Common stock issued and paid
+
+Lease Liabilities
+UNIT: NUMBER
+Finance and operating lease liabilities
+
+CWIP
+UNIT: NUMBER
+Construction in progress - gross
+
+Trade Payables
+UNIT: NUMBER
+Accounts and notes payable - short term
+
+Capex FY growth 1Y
+UNIT: %
+Annual 1-year compound annual growth rate of capital expenditures
+
+Capex CF FY
+UNIT: NUMBER
+Annual capital expenditures - money spent on long-term assets
+
+Capex to Sales FY %
+UNIT: %
+Annual capital expenditures as percentage of sales
+
+FCF to Earnings %
+UNIT: %
+Free cash flow as percentage of net income
+
+Financing CF FY
+UNIT: NUMBER
+Annual cash flow from financing activities (debt, equity, dividends)
+
+Free Cash Flow FY
+UNIT: NUMBER
+Annual free cash flow - cash available after expenses and investments
+
+Investing CF FY
+UNIT: NUMBER
+Annual cash flow from investing activities (assets, acquisitions)
+
+OCF to Earnings %
+UNIT: %
+Operating cash flow as percentage of net income
+
+Operating CF ratio FY
+UNIT: %
+Annual operating cash flow as percentage of revenue
+
+Operating CF FY
+UNIT: NUMBER
+Annual cash flow from core business operations
+
+FCFE FY
+UNIT: NUMBER
+Annual free cash flow to equity
+
+FCFF FY
+UNIT: NUMBER
+Annual free cash flow to firm
+
+Cash Beginning Balance
+UNIT: NUMBER
+Net cash at beginning of period
+
+Cash Ending Balance
+UNIT: NUMBER
+Net cash at ending of period
+
+Net Cash Flow
+UNIT: NUMBER
+Net change in cash - total
+
+EBITDA margin FY
+UNIT: %
+Annual EBITDA as percentage of revenue
+
+Gross margin FY
+UNIT: %
+Annual gross profit as percentage of revenue
+
+Profit after Tax FY
+UNIT: NUMBER
+Annual net profit after all expenses and taxes
+
+Net profit margin FY
+UNIT: %
+Annual net profit as percentage of revenue
+
+Operating CF margin FY
+UNIT: %
+Annual operating cash flow as percentage of revenue
+
+Operating margin FY
+UNIT: %
+Annual operating profit as percentage of revenue
+
+Free CF margin FY
+UNIT: %
+Annual free cash flow as percentage of revenue
+
+ROE 3Y Avg
+UNIT: %
+3-year average return on equity
+
+ROE 5Y Avg
+UNIT: %
+5-year average return on equity
+
+ROE 7Y Avg
+UNIT: %
+7-year average return on equity
+
+ROE 10Y Avg
+UNIT: %
+10-year average return on equity
+
+ROA 3Y Avg
+UNIT: %
+3-year average return on assets
+
+ROA 5Y Avg
+UNIT: %
+5-year average return on assets
+
+ROA 7Y Avg
+UNIT: %
+7-year average return on assets
+
+ROA 10Y Avg
+UNIT: %
+10-year average return on assets
+
+ROCE 3Y Avg
+UNIT: %
+3-year average return on capital employed
+
+ROCE 5Y Avg
+UNIT: %
+5-year average return on capital employed
+
+ROCE 7Y Avg
+UNIT: %
+7-year average return on capital employed
+
+ROCE 10Y Avg
+UNIT: %
+10-year average return on capital employed
+
+ROIC 3Y Avg
+UNIT: %
+3-year average return on invested capital
+
+ROIC 5Y Avg
+UNIT: %
+5-year average return on invested capital
+
+NPM 3Y Avg
+UNIT: %
+3-year average net profit margin
+
+NPM 5Y Avg
+UNIT: %
+5-year average net profit margin
+
+EBITDA Margin 3Y Avg
+UNIT: %
+3-year average EBITDA margin
+
+EBITDA Margin 5Y Avg
+UNIT: %
+5-year average EBITDA margin
+
+Gross Margin 3Y Avg
+UNIT: %
+3-year average gross margin
+
+Gross Margin 5Y Avg
+UNIT: %
+5-year average gross margin
+
+FCF Margin 3Y Avg
+UNIT: %
+3-year average free cash flow margin
+
+FCF Margin 5Y Avg
+UNIT: %
+5-year average free cash flow margin
+
+OCF Margin 3Y Avg
+UNIT: %
+3-year average operating cash flow margin
+
+OCF Margin 5Y Avg
+UNIT: %
+5-year average operating cash flow margin
+
+OPM 3Y Avg
+UNIT: %
+3-year average operating profit margin
+
+OPM 5Y Avg
+UNIT: %
+5-year average operating profit margin
+
+OPM 10Y Avg
+UNIT: %
+10-year average operating profit margin
+
+Receivable Days 3Y Avg
+UNIT: NUMBER
+3-year average receivable days
+
+Receivable Days 5Y Avg
+UNIT: NUMBER
+5-year average receivable days
+
+Dividend Payout 3Y Avg
+UNIT: %
+3-year average dividend payout ratio
+
+DPS 5Y Avg
+UNIT: NUMBER
+5-year average dividend per share
+
+Earnings 5Y Avg
+UNIT: NUMBER
+5-year average earnings
+
+Earnings 10Y Avg
+UNIT: NUMBER
+10-year average earnings
+
+EBIT 5Y Avg
+UNIT: NUMBER
+5-year average EBIT
+
+EBIT 10Y Avg
+UNIT: NUMBER
+10-year average EBIT
+
+Working Capital Days 3Y Avg
+UNIT: NUMBER
+3-year average working capital days
+
+Profit FY growth 1Y
+UNIT: %
+Annual 1-year compound annual growth rate of profit
+
+Sales FY growth 1Y
+UNIT: %
+Annual 1-year compound annual growth rate of sales
+
+Sales FY 3Y CAGR
+UNIT: %
+3-year compound annual growth rate of sales
+
+Sales FY 5Y CAGR
+UNIT: %
+5-year compound annual growth rate of sales
+
+Sales FY 7Y CAGR
+UNIT: %
+7-year compound annual growth rate of sales
+
+Sales FY 10Y CAGR
+UNIT: %
+10-year compound annual growth rate of sales
+
+Profit FY 3Y CAGR
+UNIT: %
+3-year compound annual growth rate of profit
+
+Profit FY 5Y CAGR
+UNIT: %
+5-year compound annual growth rate of profit
+
+Profit FY 7Y CAGR
+UNIT: %
+7-year compound annual growth rate of profit
+
+Profit FY 10Y CAGR
+UNIT: %
+10-year compound annual growth rate of profit
+
+EBITDA FY 3Y CAGR
+UNIT: %
+3-year compound annual growth rate of EBITDA
+
+EBITDA FY 5Y CAGR
+UNIT: %
+5-year compound annual growth rate of EBITDA
+
+EBITDA FY 7Y CAGR
+UNIT: %
+7-year compound annual growth rate of EBITDA
+
+EBITDA FY 10Y CAGR
+UNIT: %
+10-year compound annual growth rate of EBITDA
+
+FCF 3Y CAGR
+UNIT: %
+3-year compound annual growth rate of free cash flow
+
+FCF 5Y CAGR
+UNIT: %
+5-year compound annual growth rate of free cash flow
+
+FCF 7Y CAGR
+UNIT: %
+7-year compound annual growth rate of free cash flow
+
+CFO FY growth 1Y
+UNIT: %
+1-year compound annual growth rate of operating cash flow
+
+CFO 3Y CAGR
+UNIT: %
+3-year compound annual growth rate of operating cash flow
+
+CFO 5Y CAGR
+UNIT: %
+5-year compound annual growth rate of operating cash flow
+
+CFO 7Y CAGR
+UNIT: %
+7-year compound annual growth rate of operating cash flow
+
+Capex FY 5Y CAGR
+UNIT: %
+5-year compound annual growth rate of capital expenditures
+
+EPS FY growth 1Y
+UNIT: %
+1-year compound annual growth rate of earnings per share
+
+EPS FY 3Y CAGR
+UNIT: %
+3-year compound annual growth rate of EPS
+
+EPS FY 5Y CAGR
+UNIT: %
+5-year compound annual growth rate of EPS
+
+EPS FY 7Y CAGR
+UNIT: %
+7-year compound annual growth rate of EPS
+
+EPS FY 10Y CAGR
+UNIT: %
+10-year compound annual growth rate of EPS
+
+BPS FY growth 1Y
+UNIT: %
+1-year compound annual growth rate of book value per share
+
+BPS FY 3Y CAGR
+UNIT: %
+3-year compound annual growth rate of book value per share
+
+BPS FY 5Y CAGR
+UNIT: %
+5-year compound annual growth rate of book value per share
+
+Dividend growth 1Y
+UNIT: %
+1-year dividend growth rate
+
+Dividend 3Y CAGR
+UNIT: %
+3-year compound annual growth rate of dividends
+
+Dividend 5Y CAGR
+UNIT: %
+5-year compound annual growth rate of dividends
+
+Operating Profit Growth FY
+UNIT: %
+Annual operating profit growth rate
+
+Book to Market
+UNIT: NUMBER
+Book value divided by market capitalization
+
+Dividend yield
+UNIT: %
+Annual dividend as percentage of stock price
+
+Earnings yield
+UNIT: %
+Earnings as percentage of stock price
+
+EBIT yield
+UNIT: %
+EBIT as percentage of enterprise value
+
+EBITDA yield
+UNIT: %
+EBITDA as percentage of enterprise value
+
+Enterprise value
+UNIT: NUMBER
+Total company value including debt (market cap + debt - cash)
+
+EV EBIT
+UNIT: NUMBER
+Enterprise value divided by EBIT
+
+EV EBITDA
+UNIT: NUMBER
+Enterprise value divided by EBITDA
+
+EV Sales
+UNIT: NUMBER
+Enterprise value divided by sales
+
+FCF yield
+UNIT: %
+Free cash flow yield as percentage of enterprise value
+
+Market Cap
+UNIT: NUMBER
+Total market value of all outstanding shares
+
+Operating CF yield
+UNIT: %
+Operating cash flow as percentage of enterprise value
+
+PB
+UNIT: NUMBER
+Price to Book ratio - stock price divided by book value per share
+
+PE
+UNIT: NUMBER
+Price to Earnings ratio - stock price divided by earnings per share
+
+PS
+UNIT: NUMBER
+Price to Sales ratio - stock price divided by sales per share
+
+P/FCF
+UNIT: NUMBER
+Price to Free Cash Flow ratio
+
+PEG Ratio TTM
+UNIT: NUMBER
+Price/Earnings to Growth ratio - trailing twelve months
+
+Shareholder Yield TTM
+UNIT: %
+Combined yield from dividends and buybacks - trailing twelve months
+
+Graham Number
+UNIT: NUMBER
+Graham number - intrinsic value estimate
+
+Dividend per Share
+UNIT: NUMBER
+Annual dividend paid per share to shareholders
+
+Dividend Payout Ratio
+UNIT: %
+Annual dividends as percentage of net profit
+
+Beta 1Y
+UNIT: NUMBER
+1-year rolling beta - stock volatility relative to market
+
+Idiosyncratic return 1D
+UNIT: %
+1-day idiosyncratic return - stock-specific return movement
+
+Momentum 1M
+UNIT: %
+1-month price momentum
+
+Momentum 3M
+UNIT: %
+3-month price momentum
+
+Momentum 6M
+UNIT: %
+6-month price momentum
+
+Momentum 12M
+UNIT: %
+12-month price momentum
+
+Momentum 3M ex 1M
+UNIT: %
+3-month momentum excluding last 1 month
+
+Momentum 6M ex 1M
+UNIT: %
+6-month momentum excluding last 1 month
+
+Momentum 12M ex 1M
+UNIT: %
+12-month momentum excluding last 1 month
+
+Momentum Score
+UNIT: NUMBER
+Kalpi Composite momentum score
+
+Volatility 1M
+UNIT: %
+1-month price volatility
+
+Volatility 3M
+UNIT: %
+3-month price volatility
+
+Volatility 1Y
+UNIT: %
+1-year price volatility
+
+Volatility Score
+UNIT: NUMBER
+Kalpi Composite volatility score
+
+Price / 52W High
+UNIT: NUMBER
+Current price as fraction of 52-week high
+
+Return 1D
+UNIT: %
+1-day total return
+
+EBITDA Last Yr
+UNIT: NUMBER
+Last year EBITDA
+
+EBITDA Prev Yr
+UNIT: NUMBER
+Previous year EBITDA
+
+EBIT Last Yr
+UNIT: NUMBER
+Last year EBIT
+
+EBIT Prev Yr
+UNIT: NUMBER
+Previous year EBIT
+
+Sales Last Yr
+UNIT: NUMBER
+Last year sales
+
+Sales Prev Yr
+UNIT: NUMBER
+Previous year sales
+
+Net Profit Last Yr
+UNIT: NUMBER
+Last year net profit
+
+Net Profit Prev Yr
+UNIT: NUMBER
+Previous year net profit
+
+PBT Last Yr
+UNIT: NUMBER
+Last year profit before tax
+
+PBT Prev Yr
+UNIT: NUMBER
+Previous year profit before tax
+
+Interest Exp Last Yr
+UNIT: NUMBER
+Last year interest expense
+
+Interest Exp Prev Yr
+UNIT: NUMBER
+Previous year interest expense
+
+Depreciation Last Yr
+UNIT: NUMBER
+Last year depreciation
+
+Depreciation Prev Yr
+UNIT: NUMBER
+Previous year depreciation
+
+Employee Cost Last Yr
+UNIT: NUMBER
+Last year employee cost
+
+Dividend Last Yr
+UNIT: NUMBER
+Last year dividends paid
+
+Dividend Prev Yr
+UNIT: NUMBER
+Previous year dividends paid
+
+Operating Profit Last Yr
+UNIT: NUMBER
+Last year operating profit
+
+Operating Profit Prev Yr
+UNIT: NUMBER
+Previous year operating profit
+
+Net Cash Flow Last Yr
+UNIT: NUMBER
+Last year net cash flow
+
+Net Cash Flow Prev Yr
+UNIT: NUMBER
+Previous year net cash flow
+
+Cash Beginning Last Yr
+UNIT: NUMBER
+Last year beginning cash balance
+
+Cash Beginning Prev Yr
+UNIT: NUMBER
+Previous year beginning cash balance
+
+Cash End Last Yr
+UNIT: NUMBER
+Last year ending cash balance
+
+Cash End Prev Yr
+UNIT: NUMBER
+Previous year ending cash balance
+
+Extraordinary Items Last Yr
+UNIT: NUMBER
+Last year extraordinary items
+
+Extraordinary Items Prev Yr
+UNIT: NUMBER
+Previous year extraordinary items
+
+Material Cost Last Yr
+UNIT: NUMBER
+Last year material cost
+
+Operating CF Last Yr
+UNIT: NUMBER
+Last year operating cash flow
+
+Operating CF Prev Yr
+UNIT: NUMBER
+Previous year operating cash flow
+
+Investing CF Last Yr
+UNIT: NUMBER
+Last year investing cash flow
+
+Investing CF Prev Yr
+UNIT: NUMBER
+Previous year investing cash flow
+
+Financing CF Last Yr
+UNIT: NUMBER
+Last year financing cash flow
+
+Financing CF Prev Yr
+UNIT: NUMBER
+Previous year financing cash flow
+
+Free CF Last Yr
+UNIT: NUMBER
+Last year free cash flow
+
+Free CF Prev Yr
+UNIT: NUMBER
+Previous year free cash flow
+
+Debt Prev Yr
+UNIT: NUMBER
+Previous year total debt
+
+Debt 3Y Back
+UNIT: NUMBER
+Total debt from 3 years ago
+
+Debt 5Y Back
+UNIT: NUMBER
+Total debt from 5 years ago
+
+Debt 7Y Back
+UNIT: NUMBER
+Total debt from 7 years ago
+
+Debt 10Y Back
+UNIT: NUMBER
+Total debt from 10 years ago
+
+Cash 3Y Back
+UNIT: NUMBER
+Cash from 3 years ago
+
+Cash 5Y Back
+UNIT: NUMBER
+Cash from 5 years ago
+
+Cash 7Y Back
+UNIT: NUMBER
+Cash from 7 years ago
+
+Net Block Prev Yr
+UNIT: NUMBER
+Previous year net block
+
+Net Block 3Y Back
+UNIT: NUMBER
+Net block from 3 years ago
+
+Net Block 5Y Back
+UNIT: NUMBER
+Net block from 5 years ago
+
+Net Block 7Y Back
+UNIT: NUMBER
+Net block from 7 years ago
+
+Gross Block Prev Yr
+UNIT: NUMBER
+Previous year gross block
+
+Shares Prev Yr
+UNIT: NUMBER
+Previous year shares outstanding
+
+Shares 10Y Back
+UNIT: NUMBER
+Shares outstanding from 10 years ago
+
+Investing CF 3Y Cumulative
+UNIT: NUMBER
+Cumulative investing cash flow over 3 years
+
+Investing CF 5Y Cumulative
+UNIT: NUMBER
+Cumulative investing cash flow over 5 years
+
+Investing CF 7Y Cumulative
+UNIT: NUMBER
+Cumulative investing cash flow over 7 years
+
+Investing CF 10Y Cumulative
+UNIT: NUMBER
+Cumulative investing cash flow over 10 years
+
+Operating CF 3Y Cumulative
+UNIT: NUMBER
+Cumulative operating cash flow over 3 years
+
+Operating CF 5Y Cumulative
+UNIT: NUMBER
+Cumulative operating cash flow over 5 years
+
+Operating CF 7Y Cumulative
+UNIT: NUMBER
+Cumulative operating cash flow over 7 years
+
+Operating CF 10Y Cumulative
+UNIT: NUMBER
+Cumulative operating cash flow over 10 years
+
+Free CF 3Y Cumulative
+UNIT: NUMBER
+Cumulative free cash flow over 3 years
+
+Free CF 5Y Cumulative
+UNIT: NUMBER
+Cumulative free cash flow over 5 years
+
+Free CF 7Y Cumulative
+UNIT: NUMBER
+Cumulative free cash flow over 7 years
+
+Free CF 10Y Cumulative
+UNIT: NUMBER
+Cumulative free cash flow over 10 years
+
+BPS Prev Yr
+UNIT: NUMBER
+Previous year book value per share
+
+BPS 3Y Back
+UNIT: NUMBER
+Book value per share from 3 years ago
+
+BPS 5Y Back
+UNIT: NUMBER
+Book value per share from 5 years ago
+
+BPS 10Y Back
+UNIT: NUMBER
+Book value per share from 10 years ago
+
+Working Capital Prev Yr
+UNIT: NUMBER
+Previous year working capital
+
+Working Capital 3Y Back
+UNIT: NUMBER
+Working capital from 3 years ago
+
+Working Capital 5Y Back
+UNIT: NUMBER
+Working capital from 5 years ago
+
+Working Capital 7Y Back
+UNIT: NUMBER
+Working capital from 7 years ago
+
+Working Capital 10Y Back
+UNIT: NUMBER
+Working capital from 10 years ago
+
+Inventory Turnover 3Y Back
+UNIT: NUMBER
+Inventory turnover from 3 years ago
+
+Inventory Turnover 5Y Back
+UNIT: NUMBER
+Inventory turnover from 5 years ago
+
+Inventory Turnover 7Y Back
+UNIT: NUMBER
+Inventory turnover from 7 years ago
+
+Inventory Turnover 10Y Back
+UNIT: NUMBER
+Inventory turnover from 10 years ago
+
+OPM Last Yr
+UNIT: %
+Last year operating profit margin
+
+OPM Prev Yr
+UNIT: %
+Previous year operating profit margin
+
+NPM Last Yr
+UNIT: %
+Last year net profit margin
+
+NPM Prev Yr
+UNIT: %
+Previous year net profit margin
+
+ROA Prev Yr
+UNIT: %
+Previous year return on assets
+
+ROCE Prev Yr
+UNIT: %
+Previous year return on capital employed
+
+ROE Prev Yr
+UNIT: %
+Previous year return on equity
+
+EPS Last Yr
+UNIT: NUMBER
+Last year earnings per share
+
+EPS Prev Yr
+UNIT: NUMBER
+Previous year earnings per share
+
+Sales TTM
+UNIT: NUMBER
+Trailing twelve months sales
+
+Net Profit TTM
+UNIT: NUMBER
+Trailing twelve months net profit
+
+EBITDA TTM
+UNIT: NUMBER
+Trailing twelve months EBITDA
+
+EBIT TTM
+UNIT: NUMBER
+Trailing twelve months EBIT
+
+Operating CF TTM
+UNIT: NUMBER
+Trailing twelve months operating cash flow
+
+Free CF TTM
+UNIT: NUMBER
+Trailing twelve months free cash flow
+
+EPS TTM
+UNIT: NUMBER
+Trailing twelve months earnings per share
+
+Equity TTM
+UNIT: NUMBER
+Trailing twelve months shareholder equity
+
+Dividends Paid TTM
+UNIT: NUMBER
+Trailing twelve months dividends paid
+
+Gross Margin TTM
+UNIT: %
+Trailing twelve months gross margin
+
+EBITDA Margin TTM
+UNIT: %
+Trailing twelve months EBITDA margin
+
+Operating Margin TTM
+UNIT: %
+Trailing twelve months operating margin
+
+Net Margin TTM
+UNIT: %
+Trailing twelve months net profit margin
+
+FCF Margin TTM
+UNIT: %
+Trailing twelve months free cash flow margin
+
+OCF Margin TTM
+UNIT: %
+Trailing twelve months operating cash flow margin
+
+ROA TTM
+UNIT: %
+Trailing twelve months return on assets
+
+ROE TTM
+UNIT: %
+Trailing twelve months return on equity
+
+ROCE TTM
+UNIT: %
+Trailing twelve months return on capital employed
+
+ROIC TTM
+UNIT: %
+Trailing twelve months return on invested capital
+
+Debt to Equity TTM
+UNIT: NUMBER
+Trailing twelve months debt to equity ratio
+
+Debt to EBITDA TTM
+UNIT: NUMBER
+Trailing twelve months debt to EBITDA
+
+Net Debt to EBITDA TTM
+UNIT: NUMBER
+Trailing twelve months net debt to EBITDA
+
+Interest Coverage TTM
+UNIT: NUMBER
+Trailing twelve months interest coverage ratio
+
+Current Ratio TTM
+UNIT: NUMBER
+Trailing twelve months current ratio
+
+Inventory Days TTM
+UNIT: NUMBER
+Trailing twelve months inventory days
+
+Receivable Days TTM
+UNIT: NUMBER
+Trailing twelve months receivable days
+
+Payable Days TTM
+UNIT: NUMBER
+Trailing twelve months payable days
+
+Cash Conversion Cycle TTM
+UNIT: NUMBER
+Trailing twelve months cash conversion cycle
+
+Working Capital Days TTM
+UNIT: NUMBER
+Trailing twelve months working capital days
+
+Asset Turnover TTM
+UNIT: NUMBER
+Trailing twelve months asset turnover
+
+BPS TTM
+UNIT: NUMBER
+Trailing twelve months book value per share
+
+DPS TTM
+UNIT: NUMBER
+Trailing twelve months dividend per share
+
+OCF to Earnings TTM
+UNIT: %
+Trailing twelve months operating CF to earnings ratio
+
+FCF to Earnings TTM
+UNIT: %
+Trailing twelve months free CF to earnings ratio
+
+Capex to Sales TTM
+UNIT: %
+Trailing twelve months capex as percentage of sales
+
+Dividend Payout TTM
+UNIT: %
+Trailing twelve months dividend payout ratio
+
+Sales Growth YoY TTM
+UNIT: %
+Trailing twelve months year-over-year sales growth
+
+EBITDA Growth YoY TTM
+UNIT: %
+Trailing twelve months year-over-year EBITDA growth
+
+Profit Growth YoY TTM
+UNIT: %
+Trailing twelve months year-over-year profit growth
+
+EPS Growth YoY TTM
+UNIT: %
+Trailing twelve months year-over-year EPS growth
+
+FCF Growth YoY TTM
+UNIT: %
+Trailing twelve months year-over-year free cash flow growth
+
+Piotroski Score TTM
+UNIT: NUMBER
+Trailing twelve months Piotroski F-Score
