@@ -57,7 +57,9 @@ from typing import TypedDict, Annotated, List, Tuple, Literal, Optional
 class FilterCondition(TypedDict):
     metric: str
     operator: Literal["<", ">", "<=", ">=", "=="]
-    value: float
+    compare_type: Literal["value", "metric"]
+    value: Optional[float]
+    compare_metric: Optional[str]
 
 class Reasoning(TypedDict):
     universe: str
@@ -184,27 +186,68 @@ def validate_metrics(proposed, available) -> list[str]:
 
 
 def validated_filters(raw_filters, available) -> list[FilterCondition]:
-    """Validate metric names in filter conditions and drop invalid ones."""
+    """Validate metric names in filter conditions and drop invalid ones.
+    Supports both value and metric comparisons."""
     available_set = set(available)
     valid = []
     skipped = []
 
     for f in raw_filters:
-        metric = f["metric"]
-        if metric in available_set:
-            valid.append(FilterCondition(metric=metric, operator=f["operator"], value=float(f["value"])))
-        else:
-            # Reuse validate_metrics logic for single item
+        metric = f.get("metric")
+        compare_type = f.get("compare_type", "value")  # Default to "value" for backward compat
+
+        # Validate primary metric
+        if metric not in available_set:
             corrected = validate_metrics([metric], available)
-            if corrected:
-                valid.append(FilterCondition(metric=corrected[0], operator=f["operator"], value=float(f["value"])))
-            else:
-                skipped.append(metric)
+            if not corrected:
+                skipped.append(f"{metric} (primary metric not found)")
+                continue
+            metric = corrected[0]
+
+        if compare_type == "metric":
+            compare_metric = f.get("compare_metric")
+            if not compare_metric:
+                skipped.append(f"{metric} (missing compare_metric for metric comparison)")
+                continue
+            if compare_metric not in available_set:
+                corrected = validate_metrics([compare_metric], available)
+                if not corrected:
+                    skipped.append(f"{metric} vs {compare_metric} (compare_metric not found)")
+                    continue
+                compare_metric = corrected[0]
+            if metric.lower() == compare_metric.lower():
+                skipped.append(f"{metric} (cannot compare metric to itself)")
+                continue
+            valid.append(FilterCondition(
+                metric=metric,
+                operator=f["operator"],
+                compare_type="metric",
+                value=None,
+                compare_metric=compare_metric
+            ))
+        elif compare_type == "value":
+            value = f.get("value")
+            if value is None:
+                skipped.append(f"{metric} (missing value for value comparison)")
+                continue
+            valid.append(FilterCondition(
+                metric=metric,
+                operator=f["operator"],
+                compare_type="value",
+                value=float(value),
+                compare_metric=None
+            ))
+        else:
+            skipped.append(f"{metric} (unknown compare_type: {compare_type})")
 
     if skipped:
-        print(f"⚠️  Dropped hallucinated filter metrics: {skipped}")
+        print(f"⚠️  Dropped invalid filters: {skipped}")
 
     return valid
+
+def _fmt_filter(f) -> str:
+    rhs = f["compare_metric"] if f.get("compare_type") == "metric" else f.get("value")
+    return f"{f['metric']} {f['operator']} {rhs}"
 
 def extract_json(text: str):
     """Try multiple strategies to extract valid JSON from LLM output."""
@@ -275,27 +318,23 @@ class _FallbackLLM(Runnable):
 
 llm = _FallbackLLM(_GROQ_KEY_1, _GROQ_KEY_2, _MODEL)
 
+# Cheap LLM for conversational clarification rounds
+_CHAT_MODEL = "llama-3.1-8b-instant"
+chat_llm = _FallbackLLM(_GROQ_KEY_1, _GROQ_KEY_2, _CHAT_MODEL)
+
 
 """## Graph State"""
-
-from typing import TypedDict, Annotated, List, Tuple, Literal, Optional
-
-class FilterCondition(TypedDict):
-    metric: str
-    operator: Literal["<", ">", "<=", ">=", "=="]
-    value: float
-
-class Reasoning(TypedDict):
-    universe: str
-    filter: str
-    rank: str
-    weightage: str
-    modification: str
 
 class State(TypedDict):
     # Step 1
     input: str
-    # Step 1.1
+    # Step 1.1 (new: conversation history)
+    clarification_history: List[Tuple[str, str]]  # List of (question, user_answer) pairs
+    awaiting_clarification: bool                  # If True, waiting for user response
+    clarification_rounds: int                     # Number of clarification rounds so far
+    clarification_attempts_max: int               # Max clarification rounds before proceeding
+    latest_clarification_question: Optional[str] # Stores the latest question to ask the user
+    # Step 1.2
     enriched_input: str
     metrics: List[str]
     # Step 2
@@ -323,6 +362,79 @@ import json
 #####################################################
 #___________________INPUT_NODE_______________________
 #####################################################
+def clarification_node(state: State) -> State:
+    """
+    Decide whether the user's input is sufficiently detailed for strategy building,
+    or if a clarifying question would improve the result.
+    Returns state with either:
+    - awaiting_clarification=True, with a question for the user
+    - awaiting_clarification=False, ready to proceed to enrichment
+    """
+    # Build context from conversation history
+    history_text = ""
+    if state.get("clarification_history"):
+        history_text = "Prior clarification conversation:\n"
+        for i, (q, a) in enumerate(state["clarification_history"], 1):
+            history_text += f"  Q{i}: {q}\n  A{i}: {a}\n"
+
+    prompt = ChatPromptTemplate.from_template(
+        """You are a clarifying assistant for quantitative trading strategies.
+Your job is to decide: does the user's strategy description have enough detail for us to build a comprehensive stock screener (making reasonable assumptions where necessary), or is it so genuinely vague or missing critical elements that we cannot make any reasonable assumptions and must ask ONE clarifying follow‑up question first?
+
+User's strategy description:
+{input}
+
+{history}
+
+Decision rules:
+1. ONLY ask for clarification (respond "clarify") if the input is missing enough key dimensions (such as thesis, target universe, or holding intent) that a reasonable assumption cannot be made, or if there is a direct contradiction in the request. Otherwise, respond "sufficient".
+2. Partial vagueness is completely fine: if the input provides at least some direction, the system should make a reasonable assumption (e.g., standard holding period, standard large-cap universe, etc.) rather than asking.
+3. Cap the conversation: if we've already asked {max_rounds} clarifying questions, proceed with best assumptions (respond "sufficient").
+
+Examples of "sufficient" inputs (Do NOT ask a clarifying question for these, respond "sufficient"):
+- Input: "Buy Nifty 50 stocks with high dividend yield." (Sufficient: target universe Nifty 50 and thesis dividend yield are clear; holding period and risk can be assumed).
+- Input: "I want a strategy that buys fast-growing small-cap stocks with good earnings growth YoY." (Sufficient: thesis growth and target small-cap are clear).
+- Input: "Buy stocks when RSI 14 crosses above 50." (Sufficient: entry signal RSI cross is clear; universe and holding period can be assumed).
+
+Examples of "clarify" inputs (Requires asking a clarifying question):
+- Input: "I want to make money trading stocks." (Clarify: Completely lacks thesis, target universe, holding intent, or any signal. Question: "Are you looking for short-term momentum trades or long-term value investments?")
+- Input: "Buy something that is going up or down depending on the day." (Clarify: Contradictory and extremely vague. Question: "Are you looking for a trend-following strategy or a mean-reversion strategy?")
+
+Respond ONLY with a JSON object in exactly this format, with no extra text, no markdown, no code fences:
+{{"decision": "sufficient|clarify", "question": "<question here, or null if sufficient>"}}
+"""
+    )
+    chain = prompt | chat_llm
+    response = chain.invoke({
+        "input": state["input"],
+        "history": history_text,
+        "max_rounds": state["clarification_attempts_max"]
+    })
+    try:
+        parsed = extract_json(response.content.strip())
+    except Exception:
+        print("⚠️ Invalid JSON from clarification LLM. Defaulting to proceed.")
+        parsed = {"decision": "sufficient", "question": None}
+
+    decision = parsed.get("decision", "sufficient")
+    question = parsed.get("question")
+    if decision == "clarify" and question and state["clarification_rounds"] < state["clarification_attempts_max"]:
+        print(f"❓ Clarification Q{state['clarification_rounds'] + 1}: {question}")
+        return {
+            **state,
+            "awaiting_clarification": True,
+            "latest_clarification_question": question,
+        }
+    else:
+        print("✅ Sufficient detail. Proceeding to strategy enrichment.")
+        return {
+            **state,
+            "awaiting_clarification": False,
+            "latest_clarification_question": None,
+        }
+
+#___________________INPUT_NODE_______________________
+
 def take_input(state:State) -> State:
     user_input = input("🟢 Paste the strategy description here:\n")
     prompt = ChatPromptTemplate.from_template(
@@ -482,19 +594,24 @@ Respond with ONLY a JSON object in exactly this format, with no extra text, no m
             "metrics": metrics_constant
         }
 
-    # --- Step 2: Assign operator and threshold value to each metric ---
+    # --- Step 2: Assign operator and threshold value/metric to each metric ---
     prompt_2 = ChatPromptTemplate.from_template(
         """You are a quantitative stock screener assistant for Indian equities.
 
-For each metric below, assign an appropriate comparison operator and threshold value
+For each metric below, assign an appropriate comparison operator and threshold
 that would serve as a sensible filter given the strategy context.
 
+You can compare a metric to:
+1. A static value (e.g., RSI 14 > 55, P/E < 20)
+2. Another metric (e.g., EMA 20 > EMA 50, Close Price > EMA 50)
+
 Rules:
-- Operator must be one of: ">", "<", ">=", "<="
-- Value must be a number (int or float). No strings, no nulls.
-- Use domain knowledge — e.g. for "RSI 14" a momentum strategy might use "> 55",
-  for "P/E Ratio" a value strategy might use "< 20".
-- Ensure the filter is realistic for Indian equities.
+- Operator must be one of: ">", "<", ">=", "<=", "=="
+- For VALUE comparisons: value must be a number (int or float). No strings, no nulls.
+- For METRIC comparisons: the second metric must also be from the available metrics list.
+- Use domain knowledge: momentum strategies benefit from moving average crossovers (metric vs metric),
+  value strategies use valuation thresholds (metric vs value).
+- Ensure filters are realistic for Indian equities.
 
 Strategy:
 {strategy}
@@ -502,14 +619,13 @@ Strategy:
 Stock Universe:
 {universe}
 
-Metrics to assign:
+Metrics to assign (use exact names):
 {metrics}
 
-Respond with ONLY a JSON array in exactly this format, with no extra text, no markdown, no code fences:
-[
-  {{"metric": "<metric name>", "operator": "<operator>", "value": <number>}},
-  ...
-]"""
+Respond with ONLY a JSON array. Each element must be one of these two shapes:
+  Value comparison : {{"metric": "METRIC_NAME", "operator": "OP", "compare_type": "value", "value": NUMBER}}
+  Metric comparison: {{"metric": "METRIC_NAME", "operator": "OP", "compare_type": "metric", "compare_metric": "METRIC2_NAME"}}
+No extra text, no markdown, no code fences."""
     )
 
     chain_2 = prompt_2 | llm
@@ -532,14 +648,30 @@ Respond with ONLY a JSON array in exactly this format, with no extra text, no ma
     # Validate the filter conditions produced by the second prompt
     validated_filter_conditions = validated_filters(parsed_2, metrics_constant)
 
-    filters: List[FilterCondition] = [
-        FilterCondition(
-            metric=item["metric"],
-            operator=item["operator"],
-            value=float(item["value"])
-        )
-        for item in validated_filter_conditions # Iterate over validated conditions
-    ]
+    filters: List[FilterCondition] = []
+    for item in validated_filter_conditions:
+        compare_type = item.get("compare_type", "value")
+        if compare_type == "metric":
+            filters.append(FilterCondition(
+                metric=item["metric"],
+                operator=item["operator"],
+                compare_type="metric",
+                value=None,
+                compare_metric=item.get("compare_metric"),
+            ))
+        else:
+            raw_val = item.get("value")
+            try:
+                val = float(raw_val) if raw_val is not None else 0.0
+            except (TypeError, ValueError):
+                val = 0.0
+            filters.append(FilterCondition(
+                metric=item["metric"],
+                operator=item["operator"],
+                compare_type="value",
+                value=val,
+                compare_metric=None,
+            ))
     print("🟢 Filters Applied: ", filters)
     print("🔴 Reasoning behind Filters: ", parsed_1["reasoning"])
     return {
@@ -641,7 +773,9 @@ def weightage_node(state: State) -> State:
     response = chain.invoke({
         "universe": state["universe"],
         "strategy": state["enriched_input"],
-        "filtration": ", ".join(f"{f['metric']} {f['operator']} {f['value']}" for f in state["filters"]),
+        "filtration": ", ".join(
+            _fmt_filter(f) for f in state["filters"]
+        ),
         "rank_metrics": ", ".join(state["ranking_metrics"]),
     })
 
@@ -652,7 +786,7 @@ def weightage_node(state: State) -> State:
         response = chain.invoke({
             "universe": state["universe"],
             "strategy": state["enriched_input"],
-            "filtration": ", ".join(f"{f['metric']} {f['operator']} {f['value']}" for f in state["filters"]),
+            "filtration": ", ".join(_fmt_filter(f) for f in state["filters"]),
             "rank_metrics": ", ".join(state["ranking_metrics"]),
         })
         parsed = extract_json(response.content.strip())
@@ -679,7 +813,9 @@ Respond with ONLY a JSON object in exactly this format, with no extra text, no m
             "universe": state["universe"],
             "strategy": state["enriched_input"],
             "metrics": "\n".join(state["metrics"]),
-            "filtration": ", ".join(f"{f['metric']} {f['operator']} {f['value']}" for f in state["filters"]),
+            "filtration": ", ".join(
+                _fmt_filter(f) for f in state["filters"]
+            ),
             "rank_metrics": ", ".join(state["ranking_metrics"]),
         })
 
@@ -691,7 +827,9 @@ Respond with ONLY a JSON object in exactly this format, with no extra text, no m
                 "universe": state["universe"],
                 "strategy": state["enriched_input"],
                 "metrics": "\n".join(state["metrics"]),
-                "filtration": ", ".join(f"{f['metric']} {f['operator']} {f['value']}" for f in state["filters"]),
+                "filtration": ", ".join(
+                    _fmt_filter(f) for f in state["filters"]
+                ),
                 "rank_metrics": ", ".join(state["ranking_metrics"]),
             })
             parsed_2 = extract_json(response_2.content.strip())
@@ -735,7 +873,7 @@ Respond with ONLY a JSON object in exactly this format, with no extra text, no m
 #####################################################
 def display_node(state: State) -> State:
     filters_str = "\n".join(
-        f"    • {f['metric']} {f['operator']} {f['value']}"
+        f"    • {_fmt_filter(f)}"
         for f in state["filters"]
     )
     ranking_str = "\n".join(f"    {i+1}. {m}" for i, m in enumerate(state["ranking_metrics"]))
@@ -799,7 +937,7 @@ def display_node(state: State) -> State:
 
 def modification_node(state: State) -> State:
     filters_str = "\n".join(
-        f"    • {f['metric']} {f['operator']} {f['value']}"
+        f"    • {_fmt_filter(f)}"
         for f in state["filters"]
     )
     ranking_str = "\n".join(f"    {i+1}. {m}" for i, m in enumerate(state["ranking_metrics"]))

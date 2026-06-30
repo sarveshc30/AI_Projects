@@ -24,6 +24,8 @@ from kalpi_strategy_builder import (
     validated_filters,
     extract_json,
     llm,
+    clarification_node,
+    _fmt_filter,
 )
 
 app = FastAPI()
@@ -91,7 +93,7 @@ User Input : {input}"""
 
 def _run_modification(state: State, mod_input: str) -> State:
     filters_str = "\n".join(
-        f"    • {f['metric']} {f['operator']} {f['value']}"
+        f"    • {_fmt_filter(f)}"
         for f in state["filters"]
     )
     ranking_str = "\n".join(f"    {i+1}. {m}" for i, m in enumerate(state["ranking_metrics"]))
@@ -241,6 +243,11 @@ def start_workflow(req: StartRequest):
             "reasoning": {},
             "mod_conversation": [],
             "is_complete": False,
+            "clarification_history": [],
+            "awaiting_clarification": False,
+            "clarification_rounds": 0,
+            "clarification_attempts_max": 3,
+            "latest_clarification_question": None,
         }
         state = _run_enrich(initial_state, req.user_input)
         state = universe_node(state)
@@ -253,6 +260,102 @@ def start_workflow(req: StartRequest):
             stage="complete",
             state=state,
             message="Workflow completed"
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+def _run_full_pipeline(state: State) -> State:
+    """Run the main pipeline steps after clarification is sufficient."""
+    state = _run_enrich(state, state["input"])
+    state = universe_node(state)
+    state = filter_node(state)
+    state = ranking_node(state)
+    state = weightage_node(state)
+    return state
+
+@app.post("/api/chat/start")
+def chat_start(req: StartRequest):
+    """Start a session with interactive clarification flow."""
+    try:
+        # Initialize state with clarification fields (already included in start_workflow)
+        initial_state: State = {
+            "input": req.user_input,
+            "enriched_input": "",
+            "metrics": metrics_constant,
+            "universe": "",
+            "filters": [],
+            "ranking_metrics": [],
+            "top_n": 0,
+            "weight_type": "equal",
+            "weight_metrics": [],
+            "reasoning": {},
+            "mod_conversation": [],
+            "is_complete": False,
+            "clarification_history": [],
+            "awaiting_clarification": False,
+            "clarification_rounds": 0,
+            "clarification_attempts_max": 3,
+            "latest_clarification_question": None,
+        }
+        # Run the first clarification check
+        state = clarification_node(initial_state)
+        sessions[req.session_id] = state
+        if state.get("awaiting_clarification"):
+            return StateResponse(
+                session_id=req.session_id,
+                stage="clarification",
+                state=state,
+                message=state.get("latest_clarification_question", "Need clarification"),
+            )
+        # No clarification needed – run full pipeline
+        state = _run_full_pipeline(state)
+        sessions[req.session_id] = state
+        return StateResponse(
+            session_id=req.session_id,
+            stage="complete",
+            state=state,
+            message="Workflow completed",
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+class ChatRespondRequest(BaseModel):
+    session_id: str
+    answer: str
+
+@app.post("/api/chat/respond")
+def chat_respond(req: ChatRespondRequest):
+    """Provide an answer to the latest clarification question and continue."""
+    try:
+        if req.session_id not in sessions:
+            raise HTTPException(status_code=404, detail="Session not found")
+        state = sessions[req.session_id]
+        # Record the answer
+        q = state.get("latest_clarification_question")
+        if q:
+            state["clarification_history"].append((q, req.answer))
+        state["clarification_rounds"] = state.get("clarification_rounds", 0) + 1
+        # Reset awaiting flag before next check
+        state["awaiting_clarification"] = False
+        state["latest_clarification_question"] = None
+        # Run clarification node again
+        state = clarification_node(state)
+        sessions[req.session_id] = state
+        if state.get("awaiting_clarification"):
+            return StateResponse(
+                session_id=req.session_id,
+                stage="clarification",
+                state=state,
+                message=state.get("latest_clarification_question", "Need clarification"),
+            )
+        # Clarification sufficient – run the rest of the pipeline
+        state = _run_full_pipeline(state)
+        sessions[req.session_id] = state
+        return StateResponse(
+            session_id=req.session_id,
+            stage="complete",
+            state=state,
+            message="Workflow completed",
         )
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

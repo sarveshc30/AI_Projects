@@ -369,6 +369,7 @@ let state = null;
 let history = [];
 let sessionId = Date.now();
 let isThinking = false;
+let awaitingClarification = false;
 
 // ── AUTO-RESIZE TEXTAREA ──
 function autoResize(el) {
@@ -481,9 +482,10 @@ function removeThinking() {
 
 // ── STRATEGY CARD ──
 function renderStrategyCard(s) {
-  const filtersHtml = (s.filters || []).map(f =>
-    `<div class="sc-list-item">${f.metric} <strong>${f.operator}</strong> ${f.value}</div>`
-  ).join('') || '<div class="sc-list-item" style="color:var(--text3)">No filters</div>';
+  const filtersHtml = (s.filters || []).map(f => {
+    const rhs = f.compare_type === 'metric' ? f.compare_metric : f.value;
+    return `<div class="sc-list-item">${f.metric} <strong>${f.operator}</strong> ${rhs}</div>`;
+  }).join('') || '<div class="sc-list-item" style="color:var(--text3)">No filters</div>';
 
   const rankHtml = (s.ranking_metrics || []).map((m, i) =>
     `<div class="sc-list-item">${i+1}. ${m}</div>`
@@ -535,15 +537,14 @@ function renderStrategyCard(s) {
 }
 
 // ── API CALLS (simulate LangGraph nodes) ──
-const API_BASE = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
-  ? 'http://localhost:8000/api'
-  : '/api';
+const BASE_URL = (window.location.protocol && window.location.protocol.startsWith('http')) ? `${window.location.protocol}//${window.location.host}` : 'http://localhost:8000';
+const API_BASE = `${BASE_URL}/api`;
 
-async function apiStart(sessionId, userInput) {
-  const res = await fetch(`${API_BASE}/start`, {
+async function apiRespond(sessionId, answer) {
+  const res = await fetch(`${API_BASE}/chat/respond`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ session_id: sessionId.toString(), user_input: userInput })
+    body: JSON.stringify({ session_id: sessionId.toString(), answer })
   });
   if (!res.ok) throw new Error(await res.text());
   return res.json();
@@ -554,6 +555,16 @@ async function apiModify(sessionId, modificationInput) {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ session_id: sessionId.toString(), modification_input: modificationInput })
+  });
+  if (!res.ok) throw new Error(await res.text());
+  return res.json();
+}
+
+async function apiStart(sessionId, userInput) {
+  const res = await fetch(`${API_BASE}/chat/start`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ session_id: sessionId.toString(), user_input: userInput })
   });
   if (!res.ok) throw new Error(await res.text());
   return res.json();
@@ -573,6 +584,20 @@ async function sendMessage() {
   setStatus('Processing…', 'amber');
 
   appendMsg('user', text);
+
+  // If awaiting clarification, send response to clarification endpoint
+  if (awaitingClarification) {
+    try {
+      await runClarificationResponse(text);
+    } catch(e) {
+      removeThinking();
+      appendMsg('bot', `<span style="color:var(--red)">⚠ Error: ${e.message}. Please check your connection and try again.</span>`);
+      setStatus('Error', 'amber');
+    }
+    document.getElementById('sendBtn').disabled = false;
+    isThinking = false;
+    return;
+  }
 
   // Check if this is a modification
   const isModify = state && (text.toLowerCase().includes('modify') || text.toLowerCase().includes('change') || text.toLowerCase().includes('update') || text.toLowerCase().includes('adjust') || text.toLowerCase().includes('add') || text.toLowerCase().includes('remove') || text.toLowerCase().includes('increase') || text.toLowerCase().includes('decrease'));
@@ -613,6 +638,16 @@ async function runFullWorkflow(text) {
     const response = await apiStart(sessionId, text);
     clearInterval(interval);
     
+    // Handle possible clarification stage
+    if (response.stage === 'clarification') {
+      awaitingClarification = true;
+      state = response.state;
+      removeThinking();
+      appendMsg('bot', response.message);
+      setStatus('Awaiting clarification', 'amber');
+      return;
+    }
+
     removeThinking();
     state = response.state;
     
@@ -627,6 +662,30 @@ async function runFullWorkflow(text) {
     clearInterval(interval);
     throw e;
   }
+}
+
+async function runClarificationResponse(answer) {
+  // Send clarification answer to server
+  const response = await apiRespond(sessionId, answer);
+
+  // Server may return another clarification or final result
+  if (response.stage === 'clarification') {
+    awaitingClarification = true;
+    state = response.state;
+    removeThinking();
+    appendMsg('bot', response.message);
+    setStatus('Awaiting clarification', 'amber');
+    return;
+  }
+
+  // Clarification satisfied – proceed to full workflow rendering
+  awaitingClarification = false;
+  state = response.state;
+  removeThinking();
+  setNode('done');
+  setStatus('Complete', 'green');
+  const card = renderStrategyCard(state);
+  appendMsg('bot', `Your strategy is ready. Here is the complete configuration — review it and let me know if you'd like any modifications.${card}`);
 }
 
 async function runModificationWorkflow(text) {
