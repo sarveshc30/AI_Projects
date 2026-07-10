@@ -1,7 +1,5 @@
 # Weekly Scheduler — Wiring Notes
 
-This is a demo take-home build, so we don't stand up real scheduling infrastructure (no
-Airflow, no always-on worker). Instead, the pipeline is a plain CLI command
 (`python src/run_weekly.py --all`) that a scheduler just needs to invoke on a cadence.
 `config/schedule.yaml` documents the intended cadence (weekly, Monday 07:00 IST).
 

@@ -246,7 +246,11 @@ def validated_filters(raw_filters, available) -> list[FilterCondition]:
     return valid
 
 def _fmt_filter(f) -> str:
-    rhs = f["compare_metric"] if f.get("compare_type") == "metric" else f.get("value")
+    # Properly format filter criteria, handling metric comparisons correctly
+    if f.get("compare_type") == "metric":
+        rhs = f.get("compare_metric")
+    else:
+        rhs = f.get("value")
     return f"{f['metric']} {f['operator']} {rhs}"
 
 def extract_json(text: str):
@@ -282,10 +286,20 @@ def extract_json(text: str):
 
     raise ValueError(f"Could not parse JSON from LLM response:\n{text}")
 
-from langchain_groq import ChatGroq
-from dotenv import load_dotenv
-import os
-from groq import AuthenticationError, RateLimitError
+from groq import (
+    APIError,
+    AuthenticationError,
+    RateLimitError,
+    APIConnectionError,
+    APITimeoutError,
+)
+
+FALLBACK_EXCEPTIONS = (
+    AuthenticationError,
+    RateLimitError,
+    APIConnectionError,
+    APITimeoutError,
+)
  
 load_dotenv()
  
@@ -301,19 +315,57 @@ from langchain_core.runnables import Runnable
 from langchain_core.messages import BaseMessage
 
 class _FallbackLLM(Runnable):
-    """Drop-in ChatGroq replacement that falls back to a secondary key on auth/rate-limit errors.
-    Extends Runnable so `prompt | llm` works natively with LangChain."""
+    """
+    Drop-in ChatGroq replacement that falls back to a secondary key on recoverable errors.
+    Extends Runnable so `prompt | llm` works natively with LangChain.
+    
+    Attempts primary key first. If it raises a recoverable exception, tries secondary key.
+    If both fail, raises a descriptive error with debugging hints.
+    """
 
     def __init__(self, key1: str, key2: str, model: str):
         self._primary   = ChatGroq(model=model, api_key=key1)
         self._secondary = ChatGroq(model=model, api_key=key2)
+        self._model = model
+        self._primary_key_used = True
 
     def invoke(self, input, config=None, **kwargs):
         try:
-            return self._primary.invoke(input, config=config, **kwargs)
-        except (AuthenticationError, RateLimitError) as e:
-            print(f"⚠️  Primary API key failed ({type(e).__name__}). Switching to secondary key.")
-            return self._secondary.invoke(input, config=config, **kwargs)
+            result = self._primary.invoke(input, config=config, **kwargs)
+            self._primary_key_used = True
+            return result
+        except FALLBACK_EXCEPTIONS as e:
+            print(f"Primary API key failed ({type(e).__name__}): {str(e)[:100]}. Switching to secondary key.")
+            try:
+                result = self._secondary.invoke(input, config=config, **kwargs)
+                self._primary_key_used = False
+                print("Secondary API key succeeded.")
+                return result
+            except FALLBACK_EXCEPTIONS as e2:
+                raise RuntimeError(
+                    f"Both API keys exhausted.\n"
+                    f"Primary error: {type(e).__name__}: {str(e)[:200]}\n"
+                    f"Secondary error: {type(e2).__name__}: {str(e2)[:200]}\n"
+                    f"Debugging steps:\n"
+                    f"1. Check GROQ_API_KEY_1 and GROQ_API_KEY_2 in .env\n"
+                    f"2. Verify keys are valid at https://console.groq.com\n"
+                    f"3. Check for rate limit: https://console.groq.com/docs/rate-limits\n"
+                    f"4. Check network connectivity\n"
+                    f"5. Try again in a few minutes (transient error)"
+                ) from e2
+        except Exception as e:
+            raise
+
+    def with_structured_output(self, schema, **kwargs):
+        """Pass through structured output generation to both primary and secondary ChatGroq objects."""
+        # Wrap self in a fallback runnable for invoke. We can return a new _FallbackLLM
+        # that delegates structured model invokation by passing it downstream.
+        # To make with_structured_output work, we can construct structured objects
+        # on primary and secondary and create a new _FallbackLLM instance.
+        fallback_structured = _FallbackLLM("", "", self._model)
+        fallback_structured._primary = self._primary.with_structured_output(schema, **kwargs)
+        fallback_structured._secondary = self._secondary.with_structured_output(schema, **kwargs)
+        return fallback_structured
 
 
 llm = _FallbackLLM(_GROQ_KEY_1, _GROQ_KEY_2, _MODEL)
@@ -323,17 +375,19 @@ _CHAT_MODEL = "llama-3.1-8b-instant"
 chat_llm = _FallbackLLM(_GROQ_KEY_1, _GROQ_KEY_2, _CHAT_MODEL)
 
 
+from dataclasses import dataclass
+
+@dataclass
+class WeightMetric:
+    """Represents a metric used for portfolio weighting."""
+    metric: str
+    inverse: bool = False  # True if inverse relationship (lower is better)
+
 """## Graph State"""
 
 class State(TypedDict):
     # Step 1
     input: str
-    # Step 1.1 (new: conversation history)
-    clarification_history: List[Tuple[str, str]]  # List of (question, user_answer) pairs
-    awaiting_clarification: bool                  # If True, waiting for user response
-    clarification_rounds: int                     # Number of clarification rounds so far
-    clarification_attempts_max: int               # Max clarification rounds before proceeding
-    latest_clarification_question: Optional[str] # Stores the latest question to ask the user
     # Step 1.2
     enriched_input: str
     metrics: List[str]
@@ -348,16 +402,33 @@ class State(TypedDict):
     # Step 5.1
     weight_type: Literal["equal", "metric"]
     # Step 5.2 — only populated if weight_type == "metric"
-    weight_metrics: List[str]
+    weight_metric: Optional[WeightMetric]
     reasoning: Reasoning
-    # Step 6 - Modification Node
     mod_conversation: List[tuple]
     latest_mod_plan: Optional[str]
     # Step 7 - Ending workflow
     is_complete: bool
 
 from langchain_core.prompts import ChatPromptTemplate
+from langchain_groq import ChatGroq
+from dotenv import load_dotenv
 import json
+import os
+import re
+from typing import List, Optional, Literal, TypedDict
+from models import (
+    ClarificationOutput,
+    EnrichedStrategyInput,
+    UniverseOutput,
+    FilterMetricsSelectionOutput,
+    FilterConditionsOutput,
+    RankingMetricsOutput,
+    WeightageDecisionOutput,
+    MetricWeightOutput,
+    ModificationSectionsOutput,
+    FinalStrategy,
+    FilterConditionItem
+)
 
 #####################################################
 #___________________INPUT_NODE_______________________
@@ -376,10 +447,17 @@ def clarification_node(state: State) -> State:
         history_text = "Prior clarification conversation:\n"
         for i, (q, a) in enumerate(state["clarification_history"], 1):
             history_text += f"  Q{i}: {q}\n  A{i}: {a}\n"
+        prompt = ChatPromptTemplate.from_template("""You are a clarifying assistant for quantitative trading strategies.
+Your job is to decide: does the user's strategy description contain enough detail for us to build a comprehensive stock screener (making reasonable assumptions where necessary), or is it so vague or missing critical elements that we cannot make any reasonable assumptions and must ask ONE clarifying follow‑up question first?
 
-    prompt = ChatPromptTemplate.from_template(
-        """You are a clarifying assistant for quantitative trading strategies.
-Your job is to decide: does the user's strategy description have enough detail for us to build a comprehensive stock screener (making reasonable assumptions where necessary), or is it so genuinely vague or missing critical elements that we cannot make any reasonable assumptions and must ask ONE clarifying follow‑up question first?
+**Bias rule**: Favor "sufficient" unless *any* of the following **critical elements** are missing:
+- a clear investment **thesis** (what you are trying to achieve)
+- a target **universe** (which stocks or market segment)
+- a concrete **holding intent** (short-term, long-term, or a trigger signal)
+
+If the description provides at least one of these critical elements, assume reasonable defaults for the missing pieces and answer "sufficient".
+
+**Partial vagueness handling**: When the input is missing non-critical details (e.g., exact risk parameters, precise weighting method, exact filter thresholds) you should still respond "sufficient" and let downstream nodes fill in sensible defaults.
 
 User's strategy description:
 {input}
@@ -387,23 +465,18 @@ User's strategy description:
 {history}
 
 Decision rules:
-1. ONLY ask for clarification (respond "clarify") if the input is missing enough key dimensions (such as thesis, target universe, or holding intent) that a reasonable assumption cannot be made, or if there is a direct contradiction in the request. Otherwise, respond "sufficient".
-2. Partial vagueness is completely fine: if the input provides at least some direction, the system should make a reasonable assumption (e.g., standard holding period, standard large-cap universe, etc.) rather than asking.
-3. Cap the conversation: if we've already asked {max_rounds} clarifying questions, proceed with best assumptions (respond "sufficient").
+1. **When to answer "clarify"**: ONLY if the input lacks *all* of the critical elements above or contains a direct contradiction that makes any reasonable assumption impossible.
+2. **When to answer "sufficient"**: If the input contains at least one critical element, or if the missing parts are non‑critical and can be reasonably inferred.
+3. **Cap the conversation**: If we have already asked {max_rounds} clarifying questions, proceed with "sufficient".
 
-Examples of "sufficient" inputs (Do NOT ask a clarifying question for these, respond "sufficient"):
-- Input: "Buy Nifty 50 stocks with high dividend yield." (Sufficient: target universe Nifty 50 and thesis dividend yield are clear; holding period and risk can be assumed).
-- Input: "I want a strategy that buys fast-growing small-cap stocks with good earnings growth YoY." (Sufficient: thesis growth and target small-cap are clear).
-- Input: "Buy stocks when RSI 14 crosses above 50." (Sufficient: entry signal RSI cross is clear; universe and holding period can be assumed).
+**Explicit "sufficient" examples (do NOT ask clarification for these):**
+- Input: "Buy Nifty 50 stocks with high dividend yield."  (Sufficient: thesis = dividend focus, universe = Nifty 50; assume standard holding period.)
+- Input: "Select large‑cap Indian equities that have a P/E < 20 and ROE > 15%."  (Sufficient: thesis = value‑oriented, universe = large‑cap; assume medium‑term holding.)
+- Input: "Long‑term buy‑and‑hold of stocks that beat the market on a 12‑month momentum basis."  (Sufficient: thesis = momentum, universe = broad Indian market; holding intent implied.)
 
-Examples of "clarify" inputs (Requires asking a clarifying question):
-- Input: "I want to make money trading stocks." (Clarify: Completely lacks thesis, target universe, holding intent, or any signal. Question: "Are you looking for short-term momentum trades or long-term value investments?")
-- Input: "Buy something that is going up or down depending on the day." (Clarify: Contradictory and extremely vague. Question: "Are you looking for a trend-following strategy or a mean-reversion strategy?")
-
-Respond ONLY with a JSON object in exactly this format, with no extra text, no markdown, no code fences:
+Respond ONLY with a JSON object in exactly this format (no extra text, no markdown, no code fences):
 {{"decision": "sufficient|clarify", "question": "<question here, or null if sufficient>"}}
-"""
-    )
+""")
     chain = prompt | chat_llm
     response = chain.invoke({
         "input": state["input"],
@@ -436,38 +509,32 @@ Respond ONLY with a JSON object in exactly this format, with no extra text, no m
 #___________________INPUT_NODE_______________________
 
 def take_input(state:State) -> State:
-    user_input = input("🟢 Paste the strategy description here:\n")
+    user_input = input("Paste the strategy description here:\n")
     prompt = ChatPromptTemplate.from_template(
         """You are a quantitative trading strategy analyst. A user has described an investment strategy in their own words — it may be technical or plain language. Your job is to expand it into a precise, implementation-ready breakdown that downstream systems will use to screen and rank stocks.
 
-Respond ONLY with a bullet-point breakdown using exactly these six sections. Do not add commentary, preamble, or a summary outside this structure.
-
-- Core thesis: The market pattern or inefficiency this strategy exploits.
-- Target stocks: Company characteristics to look for — size, sector, liquidity, growth vs. value orientation.
-- Entry criteria: Specific conditions a stock must meet — technical signals, fundamental thresholds, price action, valuation limits. Be quantitative where possible (e.g. "RSI 14 above 55", "P/E below 20").
-- Ranking logic: What separates the best picks from merely eligible ones. List signals in priority order.
-- Risk profile: Aggressive / balanced / conservative. Note expected volatility tolerance and any concentration limits.
-- Holding intent: Short-term trade (days–weeks) or medium/long-term investment (months–years).
-
-Rules:
-- Each bullet should be 1–3 sentences.
-- Prefer numbers and thresholds over vague language. "Momentum above peers" is too vague; "3-month return in top 30% of universe" is good.
-- If the user's input is ambiguous, make a reasonable assumption and state it in parentheses — e.g. (assumed: large-cap bias given mention of stability).
-- Never ask the user a clarifying question.
-
 User Input : {input}"""
     )
-    enriched_input= prompt | llm
-    enriched_input = enriched_input.invoke(
-        {"input":user_input}
+    enriched_chain = prompt | llm.with_structured_output(EnrichedStrategyInput)
+    result = enriched_chain.invoke(
+        {"input": user_input}
     )
 
-    print("🔴 " + enriched_input.content)
+    enriched_content = (
+        f"- Core thesis: {result.core_thesis}\n"
+        f"- Target stocks: {result.target_stocks}\n"
+        f"- Entry criteria: {result.entry_criteria}\n"
+        f"- Ranking logic: {result.ranking_logic}\n"
+        f"- Risk profile: {result.risk_profile}\n"
+        f"- Holding intent: {result.holding_intent}"
+    )
+
+    print("Enriched Strategy Spec:\n" + enriched_content)
 
     return {
         **state,
-        "input":user_input,
-        'enriched_input': enriched_input.content
+        "input": user_input,
+        'enriched_input': enriched_content
     }
 
 
@@ -483,59 +550,28 @@ def universe_node(state: State) -> State:
 You will be given a strategy description and a list of available stock universes.
 Your task is to pick the single most appropriate universe for this strategy.
 
-Guidelines:
-- Broader universes (e.g. Nifty 500, All Universe) suit diversified or fundamental strategies with no strong size bias.
-- Narrower universes (e.g. Nifty 50, Nifty Next 50) suit strategies that explicitly target large-caps or blue chips.
-- Midcap/Smallcap/Microcap universes suit strategies that mention higher risk tolerance, growth, or smaller companies.
-- Nifty FNO suits strategies involving derivatives, hedging, or high liquidity requirements.
-- If the strategy mentions a specific index or segment, prefer that directly.
-- When in doubt, prefer a broader universe over a narrower one.
-
 Strategy description:
 {strategy}
 
 Available universes:
-{universes}
-
-Respond with ONLY a JSON object in exactly this format, with no extra text, no markdown, no code fences:
-{{"universe": "<name exactly as it appears in the list above>", "reasoning": "<1-2 sentences explaining why this universe fits the strategy>"}}"""
+{universes}"""
     )
 
-    chain = prompt | llm
-    response = chain.invoke({
+    chain = prompt | llm.with_structured_output(UniverseOutput)
+    result = chain.invoke({
         "strategy": state["enriched_input"],
-        "universes": universes_constant
+        "universes": ", ".join(universes_constant)
     })
 
-    try:
-        parsed = extract_json(response.content.strip())
-    except:
-        print("⚠️ Invalid JSON Returned... Trying again")
-        response = chain.invoke({
-            "strategy": state["enriched_input"],
-            "universes": universes_constant
-        })
-        parsed = extract_json(response.content.strip())
-
-
-    selected_universe = parsed["universe"]
-    reasoning = parsed["reasoning"]
-
-    # Validate the selected universe
-    if selected_universe.lower() not in [u.lower() for u in universes_constant]: # Case-insensitive check
-        print(f"⚠️  Hallucinated universe '{selected_universe}' not found in available universes. Defaulting to 'All Universe'.")
-        selected_universe = "All Universe"
-        reasoning += " (Defaulted to 'All Universe' due to hallucinated universe selection.)"
-
-    print("🟢 Stock Universe: "+selected_universe)
-    print("🔴 Reasoning behind this Universe " + reasoning)
+    print("Stock Universe: " + result.universe)
+    print("Reasoning behind this Universe: " + result.reasoning)
 
     return {
         **state,
-        "universe": selected_universe,
+        "universe": result.universe,
         "reasoning": {
             **state.get("reasoning", {}),
-            "universe": reasoning
+            "universe": result.reasoning
         }
     }
 
@@ -553,35 +589,22 @@ def filter_node(state: State) -> State:
 Given the strategy description below, select the most relevant filtration metrics from the provided list.
 Only choose metrics that would serve as hard filters — i.e. thresholds a stock MUST meet to be considered.
 Do not include metrics better suited for ranking/scoring.
-Choose between 3 and 8 metrics. Only use names exactly as they appear in the list.
 
 Strategy:
 {strategy}
 
 Available metrics:
-{metrics_list}
-
-Respond with ONLY a JSON object in exactly this format, with no extra text, no markdown, no code fences:
-{{"metrics": ["metric1", "metric2", ...], "reasoning": "<2-3 sentences explaining why these metrics were chosen as filters for this strategy>"}}"""
+{metrics_list}"""
     )
 
-    chain_1 = prompt_1 | llm
-    response_1 = chain_1.invoke({
+    chain_1 = prompt_1 | llm.with_structured_output(FilterMetricsSelectionOutput)
+    parsed_1 = chain_1.invoke({
         "strategy": state["enriched_input"],
-        "metrics_list": metrics_constant
+        "metrics_list": ", ".join(metrics_constant)
     })
-    try:
-        parsed_1 = extract_json(response_1.content.strip())
-    except:
-        print("⚠️ Invalid JSON Returned... Trying again")
-        response_1 = chain_1.invoke({
-            "strategy": state["enriched_input"],
-            "metrics_list": metrics_constant
-        })
-        parsed_1 = extract_json(response_1.content.strip())
 
     # Validate selected metrics from the first prompt
-    validated_selected_metrics = validate_metrics(parsed_1["metrics"], metrics_constant)
+    validated_selected_metrics = validate_metrics(parsed_1.metrics, metrics_constant)
     if not validated_selected_metrics:
         print("⚠️ No valid metrics selected for filtering. Returning empty filters.")
         return {
@@ -589,9 +612,8 @@ Respond with ONLY a JSON object in exactly this format, with no extra text, no m
             "filters": [],
             "reasoning": {
                 **state.get("reasoning", {}),
-                "filter": parsed_1["reasoning"] + " (No valid metrics found for filtering)."
-            },
-            "metrics": metrics_constant
+                "filter": parsed_1.reasoning + " (No valid metrics found for filtering)."
+            }
         }
 
     # --- Step 2: Assign operator and threshold value/metric to each metric ---
@@ -609,9 +631,6 @@ Rules:
 - Operator must be one of: ">", "<", ">=", "<=", "=="
 - For VALUE comparisons: value must be a number (int or float). No strings, no nulls.
 - For METRIC comparisons: the second metric must also be from the available metrics list.
-- Use domain knowledge: momentum strategies benefit from moving average crossovers (metric vs metric),
-  value strategies use valuation thresholds (metric vs value).
-- Ensure filters are realistic for Indian equities.
 
 Strategy:
 {strategy}
@@ -620,68 +639,54 @@ Stock Universe:
 {universe}
 
 Metrics to assign (use exact names):
-{metrics}
-
-Respond with ONLY a JSON array. Each element must be one of these two shapes:
-  Value comparison : {{"metric": "METRIC_NAME", "operator": "OP", "compare_type": "value", "value": NUMBER}}
-  Metric comparison: {{"metric": "METRIC_NAME", "operator": "OP", "compare_type": "metric", "compare_metric": "METRIC2_NAME"}}
-No extra text, no markdown, no code fences."""
+{metrics}"""
     )
 
-    chain_2 = prompt_2 | llm
-    response_2 = chain_2.invoke({
+    chain_2 = prompt_2 | llm.with_structured_output(FilterConditionsOutput)
+    parsed_2 = chain_2.invoke({
         "strategy": state["enriched_input"],
-        "metrics": "\n".join(validated_selected_metrics), # Use validated metrics here
+        "metrics": "\n".join(validated_selected_metrics),
         "universe": state['universe']
     })
-    try:
-        parsed_2 = extract_json(response_2.content.strip())
-    except:
-        print("⚠️ Invalid JSON Returned... Trying again")
-        response_2 = chain_2.invoke({
-            "strategy": state["enriched_input"],
-            "metrics": "\n".join(validated_selected_metrics),
-            "universe": state['universe']
-        })
-        parsed_2 = extract_json(response_2.content.strip())
-
-    # Validate the filter conditions produced by the second prompt
-    validated_filter_conditions = validated_filters(parsed_2, metrics_constant)
 
     filters: List[FilterCondition] = []
-    for item in validated_filter_conditions:
-        compare_type = item.get("compare_type", "value")
+    for item in parsed_2.filters:
+        compare_type = item.compare_type
+        # Validate metric name
+        corrected_metric = validate_metrics([item.metric], metrics_constant)
+        if not corrected_metric:
+            continue
+        metric_name = corrected_metric[0]
+
         if compare_type == "metric":
+            corrected_compare = validate_metrics([item.compare_metric], metrics_constant)
+            if not corrected_compare:
+                continue
             filters.append(FilterCondition(
-                metric=item["metric"],
-                operator=item["operator"],
+                metric=metric_name,
+                operator=item.operator,
                 compare_type="metric",
                 value=None,
-                compare_metric=item.get("compare_metric"),
+                compare_metric=corrected_compare[0]
             ))
         else:
-            raw_val = item.get("value")
-            try:
-                val = float(raw_val) if raw_val is not None else 0.0
-            except (TypeError, ValueError):
-                val = 0.0
             filters.append(FilterCondition(
-                metric=item["metric"],
-                operator=item["operator"],
+                metric=metric_name,
+                operator=item.operator,
                 compare_type="value",
-                value=val,
-                compare_metric=None,
+                value=float(item.value) if item.value is not None else 0.0,
+                compare_metric=None
             ))
-    print("🟢 Filters Applied: ", filters)
-    print("🔴 Reasoning behind Filters: ", parsed_1["reasoning"])
+
+    print("Filters Applied: ", filters)
+    print("Reasoning behind Filters: ", parsed_1.reasoning)
     return {
         **state,
         "filters": filters,
         "reasoning": {
             **state.get("reasoning", {}),
-            "filter": parsed_1["reasoning"]
-        },
-        "metrics":metrics_constant
+            "filter": parsed_1.reasoning
+        }
     }
 
 
@@ -695,56 +700,37 @@ def ranking_node(state: State) -> State:
 Given the strategy and selected universe below, choose 2-8 metrics to SCORE and RANK stocks against each other.
 
 Important distinctions:
-- Ranking metrics are used to order eligible stocks by quality — higher is better (or lower, depending on metric).
+- Ranking metrics are used to order eligible stocks by quality.
 - Do NOT repeat metrics already used as hard filters: {filters}
-- Prefer metrics that differentiate quality within the universe, not just eligibility.
-- For momentum strategies, prefer return and momentum metrics.
-- For value strategies, prefer valuation and earnings metrics.
-- For quality strategies, prefer profitability and stability metrics.
-- Choose metrics that are likely to be populated for stocks in {universe} (e.g. avoid quarterly earnings metrics for microcaps).
+- Prefer metrics that differentiate quality within the universe.
 
 Strategy:
 {strategy}
 
 Available metrics:
-{metrics}
-
-Respond with ONLY a JSON object in exactly this format, with no extra text, no markdown, no code fences:
-{{"metrics": ["inverse metric1", "metric2", ...], "reasoning": "<2-3 sentences explaining why these metrics rank stock quality for this specific strategy>"}}"""
+{metrics}"""
     )
 
-    chain = prompt | llm
-    response = chain.invoke({
+    chain = prompt | llm.with_structured_output(RankingMetricsOutput)
+    parsed = chain.invoke({
         "universe": state["universe"],
         "strategy": state["enriched_input"],
-        "metrics": "\n".join(state["metrics"]),
+        "metrics": ", ".join(state["metrics"]),
         "filters": ", ".join(f["metric"] for f in state["filters"])
     })
 
-    try:
-        parsed = extract_json(response.content.strip())
-    except:
-        print("⚠️ Invalid JSON Returned... Trying again")
-        response = chain.invoke({
-            "universe": state["universe"],
-            "strategy": state["enriched_input"],
-            "metrics": "\n".join(state["metrics"]),
-            "filters": ", ".join(f["metric"] for f in state["filters"])
-        })
-        parsed = extract_json(response.content.strip())
-
     # Validate ranking metrics
-    validated_ranking_metrics = validate_metrics(parsed["metrics"], state["metrics"])
+    validated_ranking_metrics = validate_metrics(parsed.metrics, state["metrics"])
 
-    print("🟢 Ranking Metrics: ", validated_ranking_metrics)
-    print("🔴 Reasoning: ", parsed["reasoning"])
+    print("Ranking Metrics: ", validated_ranking_metrics)
+    print("Reasoning: ", parsed.reasoning)
 
     return {
         **state,
         "ranking_metrics": validated_ranking_metrics,
         "reasoning": {
             **state.get("reasoning", {}),
-            "rank": parsed["reasoning"]
+            "rank": parsed.reasoning
         }
     }
 
@@ -756,111 +742,73 @@ Respond with ONLY a JSON object in exactly this format, with no extra text, no m
 def weightage_node(state: State) -> State:
     prompt = ChatPromptTemplate.from_template(
         """Based on the given strategy, stock universe and ranking metrics
-    answer the following Questions
+answer the following Questions:
 
-    strategy: {strategy}
-    stock universe: {universe}
-    filtration metrics: {filtration}
-    ranked based on: {rank_metrics}
-    1. How many of the top ranked stocks should be added in our strategy?
-    2. Should the weightage given to each stock be equal or based on some metric?
-
-    Respond with ONLY a JSON object in exactly this format, with no extra text, no markdown, no code fences:
-{{"num_stocks": <integer>, "weightage": <either "equal" or "metric">}}"""
+strategy: {strategy}
+stock universe: {universe}
+filtration metrics: {filtration}
+ranked based on: {rank_metrics}"""
     )
 
-    chain = prompt | llm
-    response = chain.invoke({
+    chain = prompt | llm.with_structured_output(WeightageDecisionOutput)
+    parsed = chain.invoke({
         "universe": state["universe"],
         "strategy": state["enriched_input"],
-        "filtration": ", ".join(
-            _fmt_filter(f) for f in state["filters"]
-        ),
+        "filtration": ", ".join(_fmt_filter(f) for f in state["filters"]),
         "rank_metrics": ", ".join(state["ranking_metrics"]),
     })
 
-    try:
-        parsed = extract_json(response.content.strip())
-    except:
-        print("⚠️ Invalid JSON Returned... Trying again")
-        response = chain.invoke({
-            "universe": state["universe"],
-            "strategy": state["enriched_input"],
-            "filtration": ", ".join(_fmt_filter(f) for f in state["filters"]),
-            "rank_metrics": ", ".join(state["ranking_metrics"]),
-        })
-        parsed = extract_json(response.content.strip())
-
     prompt_2 = ChatPromptTemplate.from_template(
         """Based on the given strategy, stock universe and ranking metrics
-answer the following Questions
+answer the following Questions:
 
 strategy: {strategy}
 stock universe: {universe}
 filtration metrics: {filtration}
 ranked based on: {rank_metrics}
-available_metrics: {metrics}
-
-1. What metric should be used to assign the weight of each stock in our strategy? (Choose only from the available metrics)
-
-Respond with ONLY a JSON object in exactly this format, with no extra text, no markdown, no code fences:
-{{"inverse": <either "inverse" or " ">, "metric": <Choose one from "available metrics">}}"""
+available_metrics: {metrics}"""
     )
 
-    if parsed["weightage"].lower() == "metric":
-        chain = prompt_2 | llm
-        response_2 = chain.invoke({
+    if parsed.weightage.lower() == "metric":
+        chain2 = prompt_2 | llm.with_structured_output(MetricWeightOutput)
+        parsed_2 = chain2.invoke({
             "universe": state["universe"],
             "strategy": state["enriched_input"],
-            "metrics": "\n".join(state["metrics"]),
-            "filtration": ", ".join(
-                _fmt_filter(f) for f in state["filters"]
-            ),
+            "metrics": ", ".join(state["metrics"]),
+            "filtration": ", ".join(_fmt_filter(f) for f in state["filters"]),
             "rank_metrics": ", ".join(state["ranking_metrics"]),
         })
 
-        try:
-            parsed_2 = extract_json(response_2.content.strip())
-        except:
-            print("⚠️ Invalid JSON Returned... Trying again")
-            response_2 = chain.invoke({
-                "universe": state["universe"],
-                "strategy": state["enriched_input"],
-                "metrics": "\n".join(state["metrics"]),
-                "filtration": ", ".join(
-                    _fmt_filter(f) for f in state["filters"]
-                ),
-                "rank_metrics": ", ".join(state["ranking_metrics"]),
-            })
-            parsed_2 = extract_json(response_2.content.strip())
-
         # Validate the metric proposed for weighting
-        validated_weight_metric_list = validate_metrics([parsed_2["metric"]], state["metrics"])
+        validated_weight_metric_list = validate_metrics([parsed_2.metric], state["metrics"])
 
-        if parsed["weightage"].lower() == "metric" and validated_weight_metric_list:
+        if validated_weight_metric_list:
             weight_type = "metric"
-            weight_metrics = [parsed_2["inverse"], validated_weight_metric_list[0]]
+            weight_metric = WeightMetric(
+                metric=validated_weight_metric_list[0],
+                inverse=parsed_2.inverse
+            )
         else:
             weight_type = "equal"
-            weight_metrics = []
+            weight_metric = None
 
         return {
             **state,
-            "top_n": parsed["num_stocks"],
+            "top_n": parsed.num_stocks,
             "weight_type": weight_type,
-            "weight_metrics": weight_metrics,
+            "weight_metric": weight_metric,
             "reasoning": {
                 **state.get("reasoning", {}),
-                "weightage": f"Metric-based weighting using {parsed_2['metric']}"
-                             + (" (inverse)" if parsed_2["inverse"] == "inverse" else ""),
+                "weightage": f"Metric-based weighting using {weight_metric.metric if weight_metric else 'None'}"
+                             + (" (inverse)" if weight_metric and weight_metric.inverse else ""),
             }
         }
     else:
         return {
             **state,
-            "top_n": parsed["num_stocks"],
+            "top_n": parsed.num_stocks,
             "weight_type": "equal",
-            "weight_metrics": [],
+            "weight_metric": None,
             "reasoning": {
                 **state.get("reasoning", {}),
                 "weightage": "Equal weighting applied across selected stocks.",
@@ -878,16 +826,15 @@ def display_node(state: State) -> State:
     )
     ranking_str = "\n".join(f"    {i+1}. {m}" for i, m in enumerate(state["ranking_metrics"]))
 
-    if state["weight_type"] == "metric":
-        inverse, metric = state["weight_metrics"][0], state["weight_metrics"][1]
-        weight_str = f"Metric-based → {metric}" + (" (inverse)" if inverse == "inverse" else "")
+    if state["weight_type"] == "metric" and state.get("weight_metric"):
+        weight_str = f"Metric-based → {state['weight_metric'].metric}" + (" (inverse)" if state['weight_metric'].inverse else "")
     else:
         weight_str = "Equal weighting"
 
     print("""
 ╔══════════════════════════════════════════════════════════════╗
 ║                    📊 STRATEGY SUMMARY                       ║
-╚══════════════════════════════════════════════════════════════╝
+╚══════════════════════════════════════════════════════╝
 
 🌐 Universe:
 {universe}
@@ -928,6 +875,39 @@ def display_node(state: State) -> State:
             **state,
             "is_complete": False}
     else:
+        # Save final strategy to JSON
+        try:
+            filters_pydantic = []
+            for f in state["filters"]:
+                filters_pydantic.append(FilterConditionItem(
+                    metric=f["metric"],
+                    operator=f["operator"],
+                    compare_type=f.get("compare_type", "value"),
+                    value=f.get("value"),
+                    compare_metric=f.get("compare_metric")
+                ))
+
+            w_metric = state.get("weight_metric")
+            final_strat = FinalStrategy(
+                universe=state["universe"],
+                filters=filters_pydantic,
+                ranking_metrics=state["ranking_metrics"],
+                weight_type=state["weight_type"],
+                weight_metric=w_metric.metric if w_metric else None,
+                weight_metric_inverse=w_metric.inverse if w_metric else None,
+                top_n=state["top_n"],
+                reasoning_universe=state["reasoning"].get("universe", ""),
+                reasoning_filters=state["reasoning"].get("filter", ""),
+                reasoning_ranking=state["reasoning"].get("rank", ""),
+                reasoning_weightage=state["reasoning"].get("weightage", ""),
+                original_user_input=state["input"],
+                enriched_input=state["enriched_input"]
+            )
+            final_strat.to_json("final_strategy.json")
+            print("Strategy successfully serialized and saved to 'final_strategy.json'")
+        except Exception as ex:
+            print(f"Warning: Failed to serialize strategy: {ex}")
+
         return {**state,
                 'is_complete': True}
 
@@ -942,9 +922,8 @@ def modification_node(state: State) -> State:
     )
     ranking_str = "\n".join(f"    {i+1}. {m}" for i, m in enumerate(state["ranking_metrics"]))
 
-    if state["weight_type"] == "metric":
-        inverse, metric = state["weight_metrics"][0], state["weight_metrics"][1]
-        weight_str = f"Metric-based → {metric}" + (" (inverse)" if inverse == "inverse" else "")
+    if state["weight_type"] == "metric" and state.get("weight_metric"):
+        weight_str = f"Metric-based → {state['weight_metric'].metric}" + (" (inverse)" if state['weight_metric'].inverse else "")
     else:
         weight_str = "Equal weighting"
     mod_input = input("Enter your modification plan:")
@@ -1022,30 +1001,15 @@ Rules:
 
     enriched_mod = llm.invoke(conversation)
 
-    print("🟡 Modification Plan:\n", enriched_mod.content.strip())
+    print("Modification Plan:\n", enriched_mod.content.strip())
     conversation.append(('ai', enriched_mod.content.strip()))
 
-    prompt = ('system', """Identify which sections need modification. Respond with ONLY a valid JSON object — no markdown, no code fences, no explanation.
-
-Valid section names: "universe", "filters", "ranking_metrics", "weight_metrics", "top_n"
-
-Format: {"sections": ["<section_name>", ...]}
-Example: {"sections": ["universe", "filters", "top_n"]}""")
+    prompt = ('system', """Identify which sections need modification.""")
 
     conversation.append(prompt)
-    response = llm.invoke(conversation)
-    try:
-        parsed = extract_json(response.content.strip())
-    except:
-        print("⚠️ Invalid JSON Returned... Trying again")
-        response = llm.invoke(conversation)
-        parsed = extract_json(response.content.strip())
+    response = llm.with_structured_output(ModificationSectionsOutput).invoke(conversation)
 
-    parsed = validate_metrics(parsed['sections'], ["universe", "filters", "ranking_metrics", "weight_metrics", "top_n"])
-
-    state = {**state, "mod_conversation": conversation,
-             "latest_mod_plan": enriched_mod.content.strip(),
-             "enriched_input": f"ORIGINAL:\n{state['enriched_input']}\n\nMODIFICATION PLAN:\n{enriched_mod.content.strip()}"}
+    parsed = response.sections
 
     SECTION_NODE_MAP = {
         "universe":        universe_node,
@@ -1069,7 +1033,9 @@ Example: {"sections": ["universe", "filters", "top_n"]}""")
 
     return {
         **state,
-        "mod_conversation": state.get("mod_conversation", []) + conversation,
+        "mod_conversation": (state.get("mod_conversation", []) or []) + conversation,
+        "latest_mod_plan": enriched_mod.content.strip(),
+        "enriched_input": f"ORIGINAL:\n{state['enriched_input']}\n\nMODIFICATION PLAN:\n{enriched_mod.content.strip()}",
         "is_complete": False,  # send back to display_node for review
     }
 
