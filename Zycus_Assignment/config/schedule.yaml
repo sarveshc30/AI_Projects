@@ -1,0 +1,15 @@
+# Documents the intended weekly cadence for this report. This is NOT a running scheduler --
+# it's the config a cron job or GitHub Action would read. See docs/schedule.md for the actual
+# wiring instructions (both a crontab line and a GitHub Actions workflow are provided there).
+
+schedule:
+  frequency: weekly
+  day_of_week: monday
+  time: "07:00"
+  timezone: "Asia/Kolkata"
+  command: "python src/run_weekly.py --all"
+  notes: >
+    Runs the full pipeline (ingest -> clean -> score -> LLM narrative -> report) against
+    every .xlsx file in data/samples/, writing outputs/weekly/{project}/{YYYY-MM-DD}.md.
+    A production version would point data/samples/ at a live PM-tool export location or
+    an API pull instead of static sample files.
