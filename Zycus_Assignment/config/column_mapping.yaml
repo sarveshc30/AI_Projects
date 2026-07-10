@@ -1,0 +1,101 @@
+# Config-driven column mapping for the ingestion layer.
+#
+# Purpose: map each source workbook's actual headers onto one canonical internal schema,
+# so a third project plan with yet another column order/name set can be supported by
+# adding a new block here -- never by adding if/else branches in code.
+#
+# A canonical field mapped to `null` for a given file means that file genuinely does not
+# have that column. Ingestion must set it to None and cleaning/metrics must report it as
+# a data gap -- never guess, never silently substitute 0 or a default.
+#
+# File keys are matched case-insensitively with spaces/underscores treated as equivalent
+# (e.g. "S2P Project.xlsx" and "S2P_Project.xlsx" resolve to the same profile).
+
+file_profiles:
+  s2p_project.xlsx:
+    task_sheet: "Outokumpu- S2P Project"
+    comments_sheet: "Comments"
+    summary_sheet: "Summary"
+  project_plan_b.xlsx:
+    task_sheet: "Project Plan"
+    comments_sheet: "Comments"
+    summary_sheet: "Summary"
+
+# Fallback for an unrecognized third file: ingestion picks the first worksheet that is not
+# named (case-insensitively) "Comments" or "Summary" as the task sheet, and looks for sheets
+# literally named "Comments" / "Summary" for the other two. See src/ingestion.py.
+
+task_sheet_column_map:
+  project_name:      {s2p_project.xlsx: "Project Name",      project_plan_b.xlsx: "Project Name"}
+  project_category:  {s2p_project.xlsx: "Project Category",  project_plan_b.xlsx: "Project Category"}
+  ancestors:         {s2p_project.xlsx: "Ancestors",         project_plan_b.xlsx: "Ancestors"}
+  project_manager:   {s2p_project.xlsx: "Project Manager",   project_plan_b.xlsx: "Project Manager"}
+  level:             {s2p_project.xlsx: "Level",             project_plan_b.xlsx: null}
+  phase_milestone:   {s2p_project.xlsx: "Phase/Milestone",   project_plan_b.xlsx: "Phase/Milestone"}
+  at_risk:           {s2p_project.xlsx: "At Risk?",          project_plan_b.xlsx: "At Risk?"}
+  schedule_health:   {s2p_project.xlsx: "Schedule Health",   project_plan_b.xlsx: "Schedule Health"}
+  task_name:         {s2p_project.xlsx: "Task Name",         project_plan_b.xlsx: "Task Name"}
+  status:            {s2p_project.xlsx: "Status",            project_plan_b.xlsx: "Status"}
+  start_date:        {s2p_project.xlsx: "Start Date",        project_plan_b.xlsx: "Start Date"}
+  end_date:          {s2p_project.xlsx: "End Date",          project_plan_b.xlsx: "End Date"}
+  pct_complete:      {s2p_project.xlsx: "% Complete",        project_plan_b.xlsx: "% Complete"}
+  on_hold:           {s2p_project.xlsx: "On Hold?",          project_plan_b.xlsx: "On Hold?"}
+  not_applicable:    {s2p_project.xlsx: "Not Applicable?",   project_plan_b.xlsx: "Not Applicable?"}
+  duration:          {s2p_project.xlsx: "Duration",          project_plan_b.xlsx: "Duration"}
+  predecessors:      {s2p_project.xlsx: "Predecessors",      project_plan_b.xlsx: "Predecessors"}
+  description:       {s2p_project.xlsx: "Description",       project_plan_b.xlsx: null}
+  owner:             {s2p_project.xlsx: "Owner",             project_plan_b.xlsx: "Owner"}
+  ownership:         {s2p_project.xlsx: "OwnerShip",         project_plan_b.xlsx: null}
+  priority:          {s2p_project.xlsx: "Priority",          project_plan_b.xlsx: "Priority"}
+  total_float:       {s2p_project.xlsx: "Total Float",       project_plan_b.xlsx: "Total Float"}
+  critical:          {s2p_project.xlsx: "Critical ?",        project_plan_b.xlsx: "Critical ?"}
+  baseline_start:    {s2p_project.xlsx: "Baseline Start",    project_plan_b.xlsx: "Baseline Start"}
+  baseline_finish:   {s2p_project.xlsx: "Baseline Finish",   project_plan_b.xlsx: "Baseline Finish"}
+  variance:          {s2p_project.xlsx: "Variance",          project_plan_b.xlsx: "Variance"}
+  status_comment:    {s2p_project.xlsx: "Status Comment",    project_plan_b.xlsx: "Status Comment"}
+  area:              {s2p_project.xlsx: "Area",              project_plan_b.xlsx: "Area"}
+  inline_comments:   {s2p_project.xlsx: "Comments",          project_plan_b.xlsx: "Comments"}
+  assigned_to:       {s2p_project.xlsx: "Assigned To",       project_plan_b.xlsx: "Assigned To"}
+  actual_start:      {s2p_project.xlsx: "Start",             project_plan_b.xlsx: "Start"}
+  actual_finish:     {s2p_project.xlsx: "Finish",            project_plan_b.xlsx: "Finish"}
+  task_rag:          {s2p_project.xlsx: "RAG",               project_plan_b.xlsx: null}
+
+# If `level` is null for a file, ingestion substitutes the value of this canonical field
+# instead and records a data-gap note ("Level column absent; used <fallback_field> as proxy").
+level_fallback:
+  fallback_field: ancestors
+
+# Summary sheet is parsed as key/value pairs: column A = raw label, column B = value.
+# Maps raw label text (case-sensitive, exact match) -> canonical key.
+summary_key_aliases:
+  "Project Manager": project_manager
+  "Project Start Date": project_start_date
+  "Project End Date": project_end_date
+  "Not Started": not_started_count
+  "In Progress": in_progress_count
+  "Completed": completed_count
+  "On Hold": on_hold_count
+  "At Risk": at_risk
+  "Project Stage": project_stage
+  "% Complete": pct_complete
+  "Schedule Health": schedule_health
+  "Today's Date": todays_date
+  "Target Start Date": target_start_date
+  "Target End Date": target_end_date
+  "Schedule Delta": schedule_delta
+  "Duration": duration
+  "Target Dates Variance": target_dates_variance
+  "Schedule Variance": schedule_variance
+  "Project Status": project_status
+
+# Comments sheet in both sample files has NO header row -- data starts at row 1, in
+# row-triplets (1 data row + 2 blank spacer rows). A file with zero comment rows (e.g.
+# Project_Plan_B.xlsx) yields an empty list -- a reported data gap, not an ingestion error.
+comments_sheet_format:
+  columns: [task_row_ref, comment_text, author, timestamp]
+
+# Any of these raw cell values are coerced to Python None during cleaning (src/cleaning.py).
+# Never coerced to 0 or a guessed default.
+null_tokens:
+  - "#UNPARSEABLE"
+  - ""
