@@ -1,0 +1,11 @@
+pandas
+openpyxl
+PyYAML
+nltk
+groq
+pydantic
+python-dotenv
+jinja2
+python-pptx
+pytest
+certifi
