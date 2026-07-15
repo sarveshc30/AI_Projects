@@ -152,6 +152,10 @@ metrics_constant = ['Close Price', 'High Price', 'Low Price', 'Open Price', 'Vol
 
 import re
 import json
+import os
+from dotenv import load_dotenv
+from langchain_core.prompts import ChatPromptTemplate
+from langchain_groq import ChatGroq
 
 def validate_metrics(proposed, available) -> list[str]:
     """
@@ -358,13 +362,14 @@ class _FallbackLLM(Runnable):
 
     def with_structured_output(self, schema, **kwargs):
         """Pass through structured output generation to both primary and secondary ChatGroq objects."""
-        # Wrap self in a fallback runnable for invoke. We can return a new _FallbackLLM
-        # that delegates structured model invokation by passing it downstream.
-        # To make with_structured_output work, we can construct structured objects
-        # on primary and secondary and create a new _FallbackLLM instance.
-        fallback_structured = _FallbackLLM("", "", self._model)
+        # Bypass __init__ (which would eagerly construct real ChatGroq clients and
+        # requires non-empty API keys) and wire up the already-valid primary/secondary
+        # clients directly with structured output applied.
+        fallback_structured = _FallbackLLM.__new__(_FallbackLLM)
         fallback_structured._primary = self._primary.with_structured_output(schema, **kwargs)
         fallback_structured._secondary = self._secondary.with_structured_output(schema, **kwargs)
+        fallback_structured._model = self._model
+        fallback_structured._primary_key_used = True
         return fallback_structured
 
 
@@ -447,7 +452,8 @@ def clarification_node(state: State) -> State:
         history_text = "Prior clarification conversation:\n"
         for i, (q, a) in enumerate(state["clarification_history"], 1):
             history_text += f"  Q{i}: {q}\n  A{i}: {a}\n"
-        prompt = ChatPromptTemplate.from_template("""You are a clarifying assistant for quantitative trading strategies.
+
+    prompt = ChatPromptTemplate.from_template("""You are a clarifying assistant for quantitative trading strategies.
 Your job is to decide: does the user's strategy description contain enough detail for us to build a comprehensive stock screener (making reasonable assumptions where necessary), or is it so vague or missing critical elements that we cannot make any reasonable assumptions and must ask ONE clarifying follow‑up question first?
 
 **Bias rule**: Favor "sufficient" unless *any* of the following **critical elements** are missing:

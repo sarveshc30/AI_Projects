@@ -27,6 +27,8 @@ from kalpi_strategy_builder import (
     clarification_node,
     _fmt_filter,
 )
+from screening.engine import run_screening
+from screening.schemas import ScreenResult
 
 app = FastAPI()
 
@@ -377,6 +379,33 @@ def modify_workflow(req: ModifyRequest):
         )
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+class ScreenRequest(BaseModel):
+    session_id: str
+
+
+@app.post("/api/screen", response_model=ScreenResult)
+def screen_workflow(req: ScreenRequest):
+    if req.session_id not in sessions:
+        raise HTTPException(status_code=404, detail="Session not found")
+    state = sessions[req.session_id]
+    if not state.get("universe") or not state.get("ranking_metrics"):
+        raise HTTPException(status_code=400, detail="Strategy is not complete yet")
+    w = state.get("weight_metric")
+    try:
+        result = run_screening(
+            universe=state["universe"],
+            filters=state.get("filters", []),
+            ranking_metrics=state["ranking_metrics"],
+            weight_type=state.get("weight_type", "equal"),
+            weight_metric=w.metric if w else None,
+            weight_metric_inverse=w.inverse if w else False,
+            top_n=state.get("top_n", 20),
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Screening failed unexpectedly: {e}")
+    return result
+
 
 @app.post("/api/reset")
 def reset_session(req: StartRequest):

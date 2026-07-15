@@ -1,0 +1,21 @@
+# Core
+torch
+transformers
+accelerate
+
+# Quantization backends
+bitsandbytes            # int8 + nf4 (CUDA only)
+# autoawq               # optional: AWQ kernels (CUDA). methods self-skip if absent
+# optimum               # optional: GPTQ loading. methods self-skip if absent
+# auto-gptq             #   (or gptqmodel) — GPTQ kernels
+
+# Evaluation
+lm-eval                 # quality benchmarks (mmlu, gsm8k, hellaswag, ...)
+
+# Reporting + UI
+matplotlib
+pandas
+seaborn
+tabulate                # pandas .to_markdown()
+gradio                  # web frontend
+pyyaml                  # config.yaml

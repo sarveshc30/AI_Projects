@@ -731,7 +731,7 @@ function promptModify() {
   input.placeholder = 'Describe your modification (e.g. "add RSI filter above 50", "switch to smallcap universe")…';
 }
 
-function acceptStrategy() {
+async function acceptStrategy() {
   if (!state) return;
   const json = JSON.stringify(state, null, 2);
   const blob = new Blob([json], { type: 'application/json' });
@@ -740,6 +740,89 @@ function acceptStrategy() {
   a.href = url; a.download = 'kalpi_strategy.json'; a.click();
   URL.revokeObjectURL(url);
   appendMsg('bot', 'Strategy exported as <code style="background:var(--bg3);padding:2px 6px;border-radius:4px;font-family:var(--font-mono);font-size:12px">kalpi_strategy.json</code>. You can now import this into the Kalpi.ai Strategy Builder.');
+  await runScreening();
+}
+
+async function apiScreen(sessionId) {
+  const res = await fetch(`${API_BASE}/screen`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ session_id: sessionId.toString() })
+  });
+  if (!res.ok) throw new Error(await res.text());
+  return res.json();
+}
+
+async function runScreening() {
+  showThinking('Fetching live market data…');
+  setStatus('Screening…', 'amber');
+  try {
+    const result = await apiScreen(sessionId);
+    removeThinking();
+    appendMsg('bot', renderScreenResults(result));
+    setStatus(result.success ? 'Screening complete' : 'Screening degraded', result.success ? 'green' : 'amber');
+  } catch (e) {
+    removeThinking();
+    appendMsg('bot', `<span style="color:var(--red)">⚠ Screening failed: ${e.message}</span>`);
+    setStatus('Error', 'amber');
+  }
+}
+
+function renderScreenResults(result) {
+  if (!result.success) {
+    return `<div><strong>⚠ Screening did not complete:</strong> ${result.message || 'Unknown error.'}</div>`;
+  }
+  if (!result.results || result.results.length === 0) {
+    return `<div>No stocks in <strong>${result.universe}</strong> passed the strategy's filters (${result.eligible_count} eligible out of ${result.universe_screened_tickers} screened).</div>`;
+  }
+
+  const filterCols = Object.keys(result.results[0].filter_values || {});
+  const rankCols = Object.keys(result.results[0].ranking_values || {});
+  const cols = [...new Set([...filterCols, ...rankCols])];
+
+  const fmt = (v) => (v === null || v === undefined) ? '—' : (typeof v === 'number' ? v.toLocaleString(undefined, { maximumFractionDigits: 2 }) : v);
+
+  const headerCells = ['#', 'Symbol', 'Company', 'Weight %', ...cols].map(c => `<th style="text-align:left;padding:6px 10px;border-bottom:1px solid var(--border,#444)">${c}</th>`).join('');
+  const rows = result.results.map(r => {
+    const allValues = { ...r.filter_values, ...r.ranking_values };
+    const dataCells = cols.map(c => `<td style="padding:6px 10px;border-bottom:1px solid var(--border,#333)">${fmt(allValues[c])}</td>`).join('');
+    return `<tr>
+      <td style="padding:6px 10px;border-bottom:1px solid var(--border,#333)">${r.rank}</td>
+      <td style="padding:6px 10px;border-bottom:1px solid var(--border,#333)"><strong>${r.symbol}</strong></td>
+      <td style="padding:6px 10px;border-bottom:1px solid var(--border,#333)">${r.company_name}</td>
+      <td style="padding:6px 10px;border-bottom:1px solid var(--border,#333)">${r.weight_pct}%</td>
+      ${dataCells}
+    </tr>`;
+  }).join('');
+
+  const skippedHtml = (result.skipped_metrics && result.skipped_metrics.length)
+    ? `<div style="margin-top:10px;font-size:12px;opacity:0.8">
+        <strong>Skipped metrics</strong> (not computable from live data):
+        <ul style="margin:4px 0 0 18px">${result.skipped_metrics.map(m => `<li>${m.metric} — ${m.reason}</li>`).join('')}</ul>
+      </div>`
+    : '';
+
+  const warningHtml = result.data_quality_warning
+    ? `<div style="margin-top:10px;font-size:12px;color:var(--amber,#c99)">⚠ ${result.data_quality_warning}</div>`
+    : '';
+
+  const failedHtml = (result.failed_tickers && result.failed_tickers.length)
+    ? `<div style="margin-top:6px;font-size:12px;opacity:0.7">${result.failed_tickers.length} ticker(s) could not be fetched and were excluded.</div>`
+    : '';
+
+  return `
+    <div>
+      <div style="margin-bottom:8px">Screened <strong>${result.universe_screened_tickers}</strong> of ${result.universe_total_tickers} stocks in <strong>${result.universe}</strong> — ${result.eligible_count} passed filters, top ${result.selected_count} selected (fetched ${new Date(result.fetched_at).toLocaleString()}).</div>
+      <div style="overflow-x:auto">
+        <table style="border-collapse:collapse;width:100%;font-size:13px">
+          <thead><tr>${headerCells}</tr></thead>
+          <tbody>${rows}</tbody>
+        </table>
+      </div>
+      ${skippedHtml}
+      ${warningHtml}
+      ${failedHtml}
+    </div>`;
 }
 
 function newSession() {

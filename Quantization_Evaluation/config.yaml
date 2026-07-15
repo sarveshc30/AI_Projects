@@ -1,0 +1,45 @@
+# ============================================================================
+# Automated LLM Quantization Benchmark — configuration
+# ----------------------------------------------------------------------------
+# Everything the pipeline needs comes from this file (or the Gradio UI, which
+# pre-populates its fields from here). No benchmark tasks are hardcoded in
+# Python — edit them here.
+# ============================================================================
+
+# One or more base models to benchmark (HF hub id or local path).
+models:
+  - TinyLlama/TinyLlama-1.1B-Chat-v1.0
+
+# Which quantization variants to produce for each model.
+# Valid values: fp16, int8, nf4, awq, gptq
+# (int8/nf4/awq/gptq require a CUDA GPU; unavailable ones are skipped.)
+quantizations:
+  - fp16
+  - int8
+  - nf4
+
+# lm-eval task names to score quality on.
+# Common: mmlu, gsm8k, hellaswag, truthfulqa_mc2, humaneval
+# (humaneval also needs HF_ALLOW_CODE_EVAL=1 because it executes code.)
+benchmarks:
+  - hellaswag
+  - truthfulqa_mc2
+
+generation:
+  max_new_tokens: 256
+  smartness_limit: 50        # examples per task (null = full eval, much slower)
+
+# Optional: override the speed-test prompts. Omit/leave null to use the
+# built-in DEFAULT_PROMPTS from benchmark_llm.py.
+prompts: null
+
+# For awq / gptq we load a pre-quantized checkpoint from the hub instead of
+# quantizing live. Map each base model to its pre-quantized repo id here.
+awq_ids:
+  TinyLlama/TinyLlama-1.1B-Chat-v1.0: TheBloke/TinyLlama-1.1B-Chat-v1.0-AWQ
+
+gptq_ids:
+  TinyLlama/TinyLlama-1.1B-Chat-v1.0: TheBloke/TinyLlama-1.1B-Chat-v1.0-GPTQ
+
+# Where per-variant JSON results are written.
+output_dir: ./benchmark_results
