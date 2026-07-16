@@ -25,7 +25,7 @@ from typing import Dict, List, Optional
 
 import yaml
 
-VALID_QUANTIZATIONS = ["fp16", "int8", "nf4", "awq", "gptq"]
+VALID_QUANTIZATIONS = ["fp32", "fp16", "int8", "nf4", "awq", "gptq"]
 
 # Defaults applied when a key is missing from the YAML file.
 DEFAULT_MODELS = ["TinyLlama/TinyLlama-1.1B-Chat-v1.0"]

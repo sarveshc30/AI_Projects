@@ -11,8 +11,9 @@ models:
   - TinyLlama/TinyLlama-1.1B-Chat-v1.0
 
 # Which quantization variants to produce for each model.
-# Valid values: fp16, int8, nf4, awq, gptq
-# (int8/nf4/awq/gptq require a CUDA GPU; unavailable ones are skipped.)
+# Valid values: fp32, fp16, int8, nf4, awq, gptq
+# fp32 is the only method that runs on CPU; fp16/int8/nf4/awq/gptq all need a
+# CUDA GPU and are skipped automatically if one isn't available.
 quantizations:
   - fp16
   - int8

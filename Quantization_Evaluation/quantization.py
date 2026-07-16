@@ -119,6 +119,24 @@ def _load_fp16(base_model: str, source_id: Optional[str]):
     return model, tokenizer
 
 
+def _load_fp32(base_model: str, source_id: Optional[str]):
+    """Full-precision baseline. The only method that works without a CUDA
+    GPU — half-precision matmul is unsupported/unstable for many ops on CPU,
+    and int8/nf4/awq/gptq kernels are CUDA-only."""
+    from transformers import AutoModelForCausalLM
+    device = "cuda" if torch.cuda.is_available() else "cpu"
+    tokenizer = _load_tokenizer(base_model)
+    model = AutoModelForCausalLM.from_pretrained(
+        base_model,
+        torch_dtype=torch.float32,
+        device_map="auto" if device == "cuda" else None,
+    )
+    if device != "cuda":
+        model = model.to(device)
+    model.eval()
+    return model, tokenizer
+
+
 def _load_int8(base_model: str, source_id: Optional[str]):
     from transformers import AutoModelForCausalLM, BitsAndBytesConfig
     bnb_config = BitsAndBytesConfig(load_in_8bit=True)
@@ -170,6 +188,12 @@ def _load_prequant(base_model: str, source_id: Optional[str]):
 # --------------------------------------------------------------------------- #
 
 METHODS: Dict[str, QuantMethod] = {
+    "fp32": QuantMethod(
+        name="fp32",
+        description="Full-precision (FP32) baseline — works on CPU or GPU",
+        loader=_load_fp32,
+        needs_cuda=False,
+    ),
     "fp16": QuantMethod(
         name="fp16",
         description="Half-precision (FP16) baseline",

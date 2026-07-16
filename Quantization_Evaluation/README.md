@@ -73,15 +73,35 @@ Speed / Memory / Model Size, outward = better), and an **efficiency ranking**.
 
 | Method | Backend | Needs |
 |--------|---------|-------|
+| `fp32` | transformers | **works on CPU** (or GPU) |
 | `fp16` | transformers | CUDA GPU |
 | `int8` | bitsandbytes | CUDA GPU + `bitsandbytes` |
 | `nf4`  | bitsandbytes 4-bit NF4 | CUDA GPU + `bitsandbytes` |
 | `awq`  | pre-quantized hub checkpoint | CUDA GPU + `autoawq`, an `awq_ids` entry |
 | `gptq` | pre-quantized hub checkpoint | CUDA GPU + `optimum`/`auto-gptq`, a `gptq_ids` entry |
 
-**CUDA-only:** every method except FP16 needs an NVIDIA GPU. On CPU those
-variants are skipped automatically with a logged reason rather than crashing —
-so `fp16` still works locally, and the full matrix runs in Colab.
+**CUDA-only:** `fp16` needs a GPU because half-precision matmul is
+unsupported/unstable for many ops on CPU, and the bitsandbytes/AWQ/GPTQ
+kernels are CUDA-only outright. `fp32` is the one method guaranteed to run on
+a CPU-only laptop — it'll be slow (especially `lm-eval` quality scoring) but
+functionally correct. All other variants are skipped automatically with a
+logged reason rather than crashing.
+
+### Running on a CPU-only laptop
+
+Select **only `fp32`** in `config.yaml` / the frontend's quantization
+checkboxes:
+
+```yaml
+quantizations:
+  - fp32
+```
+
+Everything else in the pipeline (speed, memory, quality, reports, efficiency
+score) works the same — you just get one variant instead of a comparison
+across methods. Expect it to be considerably slower than a GPU run,
+particularly the `lm-eval` quality pass; keep `smartness_limit` small (e.g.
+10-20) for a quick local sanity check.
 
 For HumanEval (executes model-generated code): `export HF_ALLOW_CODE_EVAL=1`.
 
