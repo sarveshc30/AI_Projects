@@ -1,0 +1,11 @@
+1. Get brand page from search (confirm from user)
+2. Go to brand page Product page
+	for each product category on the category dropdown at the top of the page
+		click on category
+		get page html for product list and link extraction
+		go to the first product's page
+		get the category, sub-category, ratings, Seller name
+
+3. Visit amazon.in, search brandname. get html page
+	remove other brands products
+	return product divs with sponsored keyword
