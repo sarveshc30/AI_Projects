@@ -1,0 +1,23 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.backends.legacy:build"
+
+[project]
+name = "pdf-rag-chatbot"
+version = "0.1.0"
+description = "RAG chatbot over a PDF using ChromaDB + Groq LLM"
+requires-python = ">=3.10"
+dependencies = [
+    "chromadb>=0.5",
+    "langchain>=0.3",
+    "langchain-community",
+    "langchain-text-splitters",
+    "pypdf",
+    "sentence-transformers",
+    "groq",
+    "typer[all]",
+    "python-dotenv",
+]
+
+[project.scripts]
+rag-chat = "src.cli:app"
