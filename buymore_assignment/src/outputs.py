@@ -6,10 +6,11 @@ import pandas as pd
 from openpyxl import load_workbook
 from openpyxl.styles import Alignment, Font, PatternFill
 
-from analysis import render_category_tree
-from logger import log, warn
+from .analysis import render_category_tree
+from .logger import log, warn
 
-EXCEL_PATH = "output.xlsx"
+OUTPUT_DIR = "outputs"
+EXCEL_PATH = os.path.join(OUTPUT_DIR, "output.xlsx")
 
 
 def _leaf_paths(nodes, prefix=()):
@@ -105,6 +106,7 @@ def write_excel(report, path=EXCEL_PATH):
     """Append one row per brand. Existing rows are read back and preserved."""
     row = _row_from_report(report)
     try:
+        os.makedirs(os.path.dirname(path) or ".", exist_ok=True)
         if os.path.exists(path):
             existing = pd.read_excel(path)
             # Reindex guards against an older file written with a different column set.
@@ -258,9 +260,10 @@ def _markdown_body(report):
     return "\n".join(lines)
 
 
-def write_markdown(report, directory="."):
+def write_markdown(report, directory=OUTPUT_DIR):
     """Write <brand_name>.md next to the Excel file."""
     safe_name = "".join(c for c in report.brand_name if c.isalnum() or c in " -_").strip()
+    os.makedirs(directory, exist_ok=True)
     path = os.path.join(directory, f"{safe_name or 'brand'}.md")
     try:
         with open(path, "w", encoding="utf-8") as handle:

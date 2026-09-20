@@ -66,14 +66,16 @@ presence will usually come back `Unknown` rather than a usable Yes/No.
 ### Architecture
 
 ```
-main.py            CLI + orchestration, per-stage error isolation
-├── scraping_module.py   Playwright/BS4 scraping (search, URL extraction, product pages)
-├── listing_audit.py     Deterministic 5-dimension weighted scoring
-├── analysis.py          LLM synthesis: category resolution + weakness report
-├── outputs.py           Excel (pandas) + Markdown writers
-├── schemas.py           Pydantic models for every structured value
-├── llm.py               Groq client with two-key fallback
-└── logger.py            Timestamped console logging
+main.py                    CLI + orchestration, per-stage error isolation
+├── src/
+│   ├── scraping_module.py  Playwright/BS4 scraping (search, URL extraction, product pages)
+│   ├── listing_audit.py    Deterministic 5-dimension weighted scoring
+│   ├── analysis.py         LLM synthesis: category resolution + weakness report
+│   ├── outputs.py          Excel (pandas) + Markdown writers
+│   ├── schemas.py          Pydantic models for every structured value
+│   ├── llm.py              Groq client with two-key fallback
+│   └── logger.py           Timestamped console logging
+└── outputs/                Generated Excel workbook + per-brand Markdown reports
 ```
 
 ### Listing quality formula
@@ -243,8 +245,8 @@ unfilled ad slot cannot become "may indicate limited ad spend".
                   `-- Lotions (1)
   [08:54:36] listing_quality -> score: 9/10
   [08:54:39] weakness_agent -> 6 weakness bullets generated
-  [08:54:41] excel -> saved row 5 to output.xlsx
-  [08:54:41] markdown -> saved .\Mamaearth.md
+  [08:54:41] excel -> saved row 5 to outputs\output.xlsx
+  [08:54:41] markdown -> saved outputs\Mamaearth.md
 
   [08:54:41] DONE: Mamaearth
 ======================================================================
@@ -259,7 +261,7 @@ The `no product title rendered ... parsing what loaded` warnings that appear on 
 are graceful degradation working: the page didn't fully render, the pipeline logged it,
 extracted what it could, and carried on.
 
-### Excel (`output.xlsx`)
+### Excel (`outputs/output.xlsx`)
 
 | Brand Name | Category | Sub-Category | Portals Live | Running Ads | Listing Quality |
 |---|---|---|---|---|---|
@@ -271,12 +273,12 @@ and every deepest-level sub-category found across the sampled products, one per 
 
 (`Check Ratings`, `Sellers Name`, and `Weakness Report` columns omitted here for width —
 see the file. Rows were produced by separate runs, demonstrating append-only. Note that
-`output.xlsx` cannot be open in Excel during a run — the file lock raises `PermissionError`,
+`outputs/output.xlsx` cannot be open in Excel during a run — the file lock raises `PermissionError`,
 which is caught and logged rather than crashing the pipeline, but the row won't be written.)
 
 ### Markdown
 
-See [`Mamaearth.md`](Mamaearth.md) and [`Biotique.md`](Biotique.md) — each covers brand
+See [`Mamaearth.md`](outputs/Mamaearth.md) and [`Biotique.md`](outputs/Biotique.md) — each covers brand
 overview, product catalog, marketplace intelligence, the full listing quality audit
 breakdown, and the weakness report.
 

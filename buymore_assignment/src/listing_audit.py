@@ -5,8 +5,8 @@ fields so the number is reproducible and auditable; the LLM is used only for the
 remark that names the weakest areas.
 """
 
-from logger import log, warn
-from schemas import ListingQualityAudit
+from .logger import log, warn
+from .schemas import ListingQualityAudit
 
 # Weights sum to 1.0; each dimension contributes its share of the final 10 points.
 WEIGHTS = {

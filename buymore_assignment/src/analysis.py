@@ -6,8 +6,8 @@ Groq keys are missing or the API is unreachable.
 
 from collections import Counter
 
-from logger import log, warn
-from schemas import CategoryNode, CategoryVerdict, WeaknessReport
+from .logger import log, warn
+from .schemas import CategoryNode, CategoryVerdict, WeaknessReport
 
 # Portals the brief asks about; only Amazon is actually checked by this implementation.
 ALL_PORTALS = ["Amazon", "Flipkart", "Nykaa", "Blinkit", "Zepto"]

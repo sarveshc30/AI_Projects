@@ -15,8 +15,8 @@ from urllib.parse import quote_plus
 
 from bs4 import BeautifulSoup
 
-from logger import log, warn
-from schemas import ProductRecord
+from .logger import log, warn
+from .schemas import ProductRecord
 
 AMAZON = "https://www.amazon.in"
 

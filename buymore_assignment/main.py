@@ -14,18 +14,18 @@ import sys
 
 from playwright.sync_api import sync_playwright
 
-import scraping_module as scraper
-from analysis import (
+from src import scraping_module as scraper
+from src.analysis import (
     build_category_tree,
     build_weakness_report,
     render_category_tree,
     resolve_category,
 )
-from listing_audit import audit_listing
-from llm import get_llm, llm_available
-from logger import end_banner, log, log_block, start_banner, warn
-from outputs import EXCEL_PATH, write_excel, write_markdown
-from schemas import BrandReport
+from src.listing_audit import audit_listing
+from src.llm import get_llm, llm_available
+from src.logger import end_banner, log, log_block, start_banner, warn
+from src.outputs import EXCEL_PATH, write_excel, write_markdown
+from src.schemas import BrandReport
 
 MAX_PRODUCTS = 5
 
